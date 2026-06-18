@@ -17,60 +17,92 @@
       color: #1f2937;
     }
 
-    header {
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
       background: #00285C;
       color: white;
-      padding: 18px;
-      text-align: center;
+      padding: 24px 18px;
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
     }
 
-    header h1 {
-      margin: 0;
+    .logo {
       font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 8px;
     }
 
-    .container {
-      max-width: 900px;
-      margin: 30px auto;
-      padding: 20px;
-    }
-
-    .menu {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+    .subtitulo {
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-bottom: 30px;
     }
 
     .menu button {
-      flex: 1;
-      min-width: 180px;
+      width: 100%;
       padding: 14px;
+      margin-bottom: 10px;
       border: none;
       border-radius: 10px;
-      background: #00285C;
+      background: rgba(255,255,255,0.12);
       color: white;
       font-size: 15px;
       cursor: pointer;
+      text-align: left;
       font-weight: bold;
     }
 
-    .menu button:hover {
-      background: #00408f;
+    .menu button:hover,
+    .menu button.ativo {
+      background: #ffffff;
+      color: #00285C;
+    }
+
+    .conteudo {
+      margin-left: 260px;
+      width: calc(100% - 260px);
+      padding: 28px;
+    }
+
+    .topo {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+
+    .topo h1 {
+      margin: 0;
+      color: #00285C;
+      font-size: 24px;
+    }
+
+    .topo p {
+      margin: 6px 0 0;
+      color: #64748b;
+      font-size: 14px;
     }
 
     .card {
       background: white;
-      padding: 22px;
-      border-radius: 14px;
+      padding: 24px;
+      border-radius: 16px;
       box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
+      max-width: 900px;
     }
 
     .card h2 {
       margin-top: 0;
       color: #00285C;
-      font-size: 20px;
+      font-size: 21px;
     }
 
     label {
@@ -78,31 +110,68 @@
       margin-top: 14px;
       font-weight: bold;
       font-size: 14px;
+      color: #334155;
     }
 
     input, select {
       width: 100%;
-      padding: 12px;
+      padding: 13px;
       margin-top: 6px;
       border: 1px solid #d1d5db;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 15px;
+      background: #fff;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #00285C;
+      box-shadow: 0 0 0 3px rgba(0,40,92,0.12);
     }
 
     .linha {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 16px;
+    }
+
+    .status-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .status-box button {
+      padding: 13px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      background: white;
+      cursor: pointer;
+      font-weight: bold;
+      color: #475569;
+    }
+
+    .status-box button.ativo {
+      background: #16a34a;
+      color: white;
+      border-color: #16a34a;
+    }
+
+    .status-box button.inativo {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
     }
 
     .btn-salvar {
-      margin-top: 20px;
+      margin-top: 22px;
       width: 100%;
-      padding: 14px;
+      padding: 15px;
       background: #16a34a;
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 16px;
       cursor: pointer;
       font-weight: bold;
@@ -138,28 +207,35 @@
     }
 
     footer {
-      text-align: center;
+      margin-top: 30px;
       color: #888;
       font-size: 12px;
-      margin: 30px 0;
+      text-align: center;
     }
 
     footer strong {
       font-style: italic;
     }
 
-    @media (max-width: 600px) {
-      .container {
-        margin: 15px auto;
-        padding: 12px;
+    @media (max-width: 760px) {
+      .app {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+      }
+
+      .conteudo {
+        margin-left: 0;
+        width: 100%;
+        padding: 16px;
       }
 
       .linha {
         grid-template-columns: 1fr;
-      }
-
-      header h1 {
-        font-size: 18px;
       }
     }
   </style>
@@ -167,70 +243,107 @@
 
 <body>
 
-  <header>
-    <h1>Controle de Comissões Realizadas por Dia</h1>
-  </header>
+  <div class="app">
 
-  <div class="container">
+    <aside class="sidebar">
+      <div class="logo">Comissões</div>
+      <div class="subtitulo">Controle diário de produção</div>
 
-    <div class="menu">
-      <button onclick="mostrarTela('colaborador')">Cadastro de Colaborador</button>
-      <button onclick="mostrarTela('comissao')">Cadastro de Comissões</button>
-    </div>
+      <div class="menu">
+        <button id="btnColaborador" class="ativo" onclick="mostrarTela('colaborador')">
+          👤 Cadastro de Colaborador
+        </button>
 
-    <section id="telaColaborador" class="card">
-      <h2>Cadastro de Colaborador</h2>
+        <button id="btnComissao" onclick="mostrarTela('comissao')">
+          💰 Cadastro de Comissões
+        </button>
+      </div>
+    </aside>
 
-      <label>Nome do Colaborador</label>
-      <input type="text" id="nomeColaborador" placeholder="Digite o nome do colaborador">
+    <main class="conteudo">
 
-      <button class="btn-salvar" onclick="salvarColaborador()">Salvar Colaborador</button>
-
-      <div id="msgColaborador" class="mensagem"></div>
-    </section>
-
-    <section id="telaComissao" class="card oculto">
-      <h2>Cadastro de Comissões</h2>
-
-      <div class="linha">
-        <div>
-          <label>Data</label>
-          <input type="date" id="dataComissao">
-        </div>
-
-        <div>
-          <label>Colaborador</label>
-          <select id="colaboradorComissao">
-            <option value="">Selecione</option>
-          </select>
-        </div>
+      <div class="topo">
+        <h1>Controle de Comissões Realizadas por Dia</h1>
+        <p>Cadastre colaboradores, informe o status e registre as comissões realizadas diariamente.</p>
       </div>
 
-      <div class="linha">
-        <div>
-          <label>Quantidade</label>
-          <input type="number" id="quantidadeComissao" placeholder="Digite a quantidade">
+      <section id="telaColaborador" class="card">
+        <h2>Cadastro de Colaborador</h2>
+
+        <div class="linha">
+          <div>
+            <label>Nome do Colaborador</label>
+            <input type="text" id="nomeColaborador" placeholder="Digite o nome do colaborador">
+          </div>
+
+          <div>
+            <label>E-mail</label>
+            <input type="email" id="emailColaborador" placeholder="Digite o e-mail do colaborador">
+          </div>
         </div>
 
-        <div>
-          <label>Valor</label>
-          <input type="number" id="valorComissao" step="0.01" placeholder="Digite o valor">
+        <label>Status</label>
+        <div class="status-box">
+          <button id="btnStatusAtivo" class="ativo" onclick="selecionarStatus('Ativo')" type="button">
+            Ativo
+          </button>
+
+          <button id="btnStatusInativo" onclick="selecionarStatus('Inativo')" type="button">
+            Inativo
+          </button>
         </div>
-      </div>
 
-      <button class="btn-salvar" onclick="salvarComissao()">Salvar Comissão</button>
+        <button class="btn-salvar" onclick="salvarColaborador()">Salvar Colaborador</button>
 
-      <div id="msgComissao" class="mensagem"></div>
-    </section>
+        <div id="msgColaborador" class="mensagem"></div>
+      </section>
+
+      <section id="telaComissao" class="card oculto">
+        <h2>Cadastro de Comissões</h2>
+
+        <div class="linha">
+          <div>
+            <label>Data</label>
+            <input type="date" id="dataComissao">
+          </div>
+
+          <div>
+            <label>Colaborador</label>
+            <select id="colaboradorComissao">
+              <option value="">Selecione</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="linha">
+          <div>
+            <label>Quantidade</label>
+            <input type="number" id="quantidadeComissao" placeholder="Digite a quantidade">
+          </div>
+
+          <div>
+            <label>Valor</label>
+            <input type="number" id="valorComissao" step="0.01" placeholder="Digite o valor">
+          </div>
+        </div>
+
+        <button class="btn-salvar" onclick="salvarComissao()">Salvar Comissão</button>
+
+        <div id="msgComissao" class="mensagem"></div>
+      </section>
+
+      <footer>
+        Desenvolvido por <strong>Roberto Lino</strong>
+      </footer>
+
+    </main>
 
   </div>
 
-  <footer>
-    Desenvolvido por <strong>Roberto Lino</strong>
-  </footer>
-
   <script>
     const URL_API = "https://script.google.com/macros/s/AKfycbwMPAiulfrqE8Ap8-a_s9C5POSUQGtb8NtrSYlvoZbaYGnV7dKEB0CVQnTh2Wqa3wJm/exec";
+
+    let statusSelecionado = "Ativo";
 
     document.addEventListener("DOMContentLoaded", () => {
       carregarColaboradores();
@@ -241,13 +354,34 @@
       document.getElementById("telaColaborador").classList.add("oculto");
       document.getElementById("telaComissao").classList.add("oculto");
 
+      document.getElementById("btnColaborador").classList.remove("ativo");
+      document.getElementById("btnComissao").classList.remove("ativo");
+
       if (tela === "colaborador") {
         document.getElementById("telaColaborador").classList.remove("oculto");
+        document.getElementById("btnColaborador").classList.add("ativo");
       }
 
       if (tela === "comissao") {
         document.getElementById("telaComissao").classList.remove("oculto");
+        document.getElementById("btnComissao").classList.add("ativo");
         carregarColaboradores();
+      }
+    }
+
+    function selecionarStatus(status) {
+      statusSelecionado = status;
+
+      const btnAtivo = document.getElementById("btnStatusAtivo");
+      const btnInativo = document.getElementById("btnStatusInativo");
+
+      btnAtivo.className = "";
+      btnInativo.className = "";
+
+      if (status === "Ativo") {
+        btnAtivo.classList.add("ativo");
+      } else {
+        btnInativo.classList.add("inativo");
       }
     }
 
@@ -285,9 +419,15 @@
 
     async function salvarColaborador() {
       const nome = document.getElementById("nomeColaborador").value.trim();
+      const email = document.getElementById("emailColaborador").value.trim();
 
       if (!nome) {
         mostrarMensagem("msgColaborador", "Preencha o nome do colaborador.", "erro");
+        return;
+      }
+
+      if (!email) {
+        mostrarMensagem("msgColaborador", "Preencha o e-mail do colaborador.", "erro");
         return;
       }
 
@@ -300,11 +440,16 @@
           },
           body: JSON.stringify({
             acao: "salvarColaborador",
-            nome: nome
+            nome: nome,
+            email: email,
+            status: statusSelecionado
           })
         });
 
         document.getElementById("nomeColaborador").value = "";
+        document.getElementById("emailColaborador").value = "";
+        selecionarStatus("Ativo");
+
         mostrarMensagem("msgColaborador", "Colaborador salvo com sucesso.", "sucesso");
 
         setTimeout(carregarColaboradores, 1000);
