@@ -3,21 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema de Comissões</title>
+  <title>Controle de Comissão</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
     * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-    :root { --azul:#0f4c81; --azul-claro:#e0f2fe; --verde:#22c55e; --verde-escuro:#16a34a; --cinza-bg:#f5f9ff; --cinza-texto:#64748b; --borda:#dbeafe; --vermelho:#ef4444; --branco:#ffffff; }
-    body { margin:0; background:var(--cinza-bg); color:#1f2937; display:flex; min-height:100vh; }
-    .sidebar { width:245px; background:var(--branco); border-right:1px solid var(--borda); padding:24px 16px; box-shadow:2px 0 12px rgba(0,0,0,.04); position:fixed; left:0; top:0; bottom:0; }
+    :root { --azul:#00285C; --azul-2:#0f4c81; --azul-claro:#e0f2fe; --verde:#22c55e; --verde-escuro:#16a34a; --cinza-bg:#f4f7fb; --cinza-texto:#64748b; --borda:#dbeafe; --vermelho:#ef4444; --branco:#ffffff; --sombra:0 12px 30px rgba(0,40,92,.12); }
+    body { margin:0; background:linear-gradient(135deg,#f4f7fb 0%,#eef7ff 100%); color:#1f2937; display:flex; min-height:100vh; }
+    body.carregando { cursor: wait; }
+    .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,.72); backdrop-filter:blur(3px); z-index:9999; display:none; align-items:center; justify-content:center; }
+    .loading-overlay.ativo { display:flex; }
+    .loading-card { background:#ffffff; border:1px solid #dbeafe; border-radius:22px; padding:26px 34px; box-shadow:var(--sombra); text-align:center; min-width:260px; }
+    .money-loader { font-size:46px; display:inline-block; animation:pensando 1.1s ease-in-out infinite; }
+    .loading-card strong { display:block; margin-top:10px; color:var(--azul); font-size:18px; }
+    .loading-card span { display:block; margin-top:6px; color:var(--cinza-texto); font-size:13px; }
+    @keyframes pensando { 0%,100% { transform:translateY(0) rotate(0deg); } 35% { transform:translateY(-7px) rotate(-7deg); } 70% { transform:translateY(0) rotate(6deg); } }
+    .topbar { width:100%; max-width:1120px; margin:0 auto 22px; background:#ffffff; border:1px solid #dbeafe; border-radius:20px; padding:18px 24px; box-shadow:var(--sombra); display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand { display:flex; align-items:center; gap:16px; }
+    .brand-logo { width:132px; height:auto; object-fit:contain; }
+    .brand-title small { display:block; color:var(--cinza-texto); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:11px; margin-bottom:4px; }
+    .brand-title h1 { margin:0; text-align:left; color:var(--azul); font-size:26px; }
+    .topbar-badge { background:#ecfdf5; color:#166534; border:1px solid #bbf7d0; border-radius:999px; padding:8px 14px; font-weight:700; font-size:13px; white-space:nowrap; }
+    .sidebar { width:245px; background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%); border-right:1px solid var(--borda); padding:24px 16px; box-shadow:2px 0 18px rgba(0,40,92,.08); position:fixed; left:0; top:0; bottom:0; }
     .sidebar h2 { color:var(--azul); font-size:21px; margin:0 0 30px; text-align:center; }
     .menu-btn { width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:10px; background:var(--azul-claro); color:var(--azul); font-size:15px; font-weight:bold; cursor:pointer; text-align:left; transition:.25s; }
-    .menu-btn:hover,.menu-btn.active { background:var(--verde); color:var(--branco); }
+    .menu-btn:hover,.menu-btn.active { background:linear-gradient(135deg,var(--verde),var(--verde-escuro)); color:var(--branco); box-shadow:0 8px 16px rgba(34,197,94,.20); }
     .main { flex:1; margin-left:245px; padding:36px; display:flex; flex-direction:column; min-height:100vh; }
-    .container { width:100%; max-width:1120px; background:var(--branco); padding:30px; border-radius:18px; box-shadow:0 8px 24px rgba(15,76,129,.10); margin:0 auto; }
+    .container { width:100%; max-width:1120px; background:var(--branco); padding:30px; border-radius:22px; box-shadow:var(--sombra); margin:0 auto; border:1px solid #e5f0ff; }
     h1 { margin-top:0; color:var(--azul); text-align:center; }
     .subtitle { text-align:center; color:var(--cinza-texto); margin-bottom:28px; }
     .tela { display:none; } .tela.ativa { display:block; }
@@ -49,23 +63,41 @@
     @media (max-width:850px) {
       body { flex-direction:column; } .sidebar { width:100%; position:static; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
       .sidebar h2 { width:100%; margin-bottom:12px; } .menu-btn { width:auto; min-width:135px; text-align:center; margin-bottom:0; }
-      .main { margin-left:0; padding:18px; } .container { padding:20px; } .grid-2,.grid-3,.card-resumo { grid-template-columns:1fr; }
+      .main { margin-left:0; padding:18px; } .topbar { flex-direction:column; align-items:flex-start; } .brand-logo { width:115px; } .brand-title h1 { font-size:22px; } .container { padding:20px; } .grid-2,.grid-3,.card-resumo { grid-template-columns:1fr; }
       table { display:block; overflow-x:auto; white-space:nowrap; } .grafico-box { height:320px; }
     }
   </style>
 </head>
 <body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-card">
+      <div class="money-loader">💸🤔</div>
+      <strong>Salvando dados...</strong>
+      <span>Aguarde, o sistema está atualizando as informações.</span>
+    </div>
+  </div>
   <aside class="sidebar">
     <h2>Comissões</h2>
-    <button class="menu-btn active" onclick="abrirTela('dashboard', this)">Dashboard</button>
-    <button class="menu-btn" onclick="abrirTela('colaboradores', this)">Colaboradores</button>
-    <button class="menu-btn" onclick="abrirTela('comissoes', this)">Comissões</button>
-    <button class="menu-btn" onclick="abrirTela('metas', this)">Metas</button>
-    <button class="menu-btn" onclick="abrirTela('relatorios', this)">Relatórios</button>
+    <button class="menu-btn" data-tela="dashboard" onclick="abrirTela('dashboard', this)">Dashboard</button>
+    <button class="menu-btn" data-tela="colaboradores" onclick="abrirTela('colaboradores', this)">Colaboradores</button>
+    <button class="menu-btn" data-tela="comissoes" onclick="abrirTela('comissoes', this)">Comissões</button>
+    <button class="menu-btn" data-tela="metas" onclick="abrirTela('metas', this)">Metas</button>
+    <button class="menu-btn" data-tela="relatorios" onclick="abrirTela('relatorios', this)">Relatórios</button>
   </aside>
   <main class="main">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="https://www.copastur.com.br/wp-content/uploads/2022/07/logo-copastur.svg" alt="Copastur">
+        <div class="brand-title">
+          <small>Sistema interno</small>
+          <h1>Controle de Comissão</h1>
+        </div>
+      </div>
+      <div class="topbar-badge">Gestão de comissões</div>
+    </header>
+
     <div class="container">
-      <section id="dashboard" class="tela ativa">
+      <section id="dashboard" class="tela">
         <h1>Dashboard</h1><p class="subtitle">Acompanhe a evolução diária e o atingimento da meta mensal</p>
         <div class="grid-2">
           <div><label for="filtroDashboardColaborador">Filtrar por colaborador</label><select id="filtroDashboardColaborador" onchange="atualizarDashboard()"><option value="">Todos os colaboradores ativos</option></select></div>
@@ -130,16 +162,37 @@
     let colaboradores = [], comissoes = [], metas = [], relatorioFiltrado = [];
     let graficoDashboard = null, graficoMeta = null;
 
-    async function chamarAPI(payload) {
-      const resposta = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-      return await resposta.json();
+    function mostrarCarregando(texto = "Salvando dados...") {
+      const overlay = document.getElementById("loadingOverlay");
+      if (overlay) {
+        const strong = overlay.querySelector("strong");
+        if (strong) strong.textContent = texto;
+        overlay.classList.add("ativo");
+      }
+      document.body.classList.add("carregando");
+    }
+
+    function esconderCarregando() {
+      const overlay = document.getElementById("loadingOverlay");
+      if (overlay) overlay.classList.remove("ativo");
+      document.body.classList.remove("carregando");
+    }
+
+    async function chamarAPI(payload, mensagem = "Carregando dados...") {
+      mostrarCarregando(mensagem);
+      try {
+        const resposta = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+        return await resposta.json();
+      } finally {
+        esconderCarregando();
+      }
     }
 
     async function carregarDadosIniciais() {
       try {
-        const respColaboradores = await chamarAPI({ acao: "listarColaboradores" });
-        const respComissoes = await chamarAPI({ acao: "listarComissoes" });
-        const respMetas = await chamarAPI({ acao: "listarMetas" });
+        const respColaboradores = await chamarAPI({ acao: "listarColaboradores" }, "Carregando colaboradores...");
+        const respComissoes = await chamarAPI({ acao: "listarComissoes" }, "Carregando comissões...");
+        const respMetas = await chamarAPI({ acao: "listarMetas" }, "Carregando metas...");
         colaboradores = (respColaboradores.colaboradores || []).map(c => ({ id:c.id, nome:c.nome, email:c.email, ativo:c.status === "Ativo", status:c.status }));
         comissoes = (respComissoes.comissoes || []).map(c => ({ id:c.id, data:c.data, colaborador:c.colaborador, quantidade:Number(c.quantidade || 0), valor:Number(c.valor || 0) }));
         metas = (respMetas.metas || []).map(m => ({ id:m.id, colaborador:m.colaborador, mes:m.mes, valor:Number(m.valor || 0) }));
@@ -150,15 +203,27 @@
       }
     }
 
-    function abrirTela(telaId, botao) {
+    function abrirTela(telaId, botao, salvarEstado = true) {
       document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa"));
-      document.getElementById(telaId).classList.add("ativa");
+      const tela = document.getElementById(telaId) || document.getElementById("dashboard");
+      tela.classList.add("ativa");
+
       document.querySelectorAll(".menu-btn").forEach(b => b.classList.remove("active"));
-      botao.classList.add("active");
-      if (telaId === "dashboard") atualizarDashboard();
-      if (telaId === "relatorios") atualizarFiltros();
-      if (telaId === "comissoes") listarComissoes();
-      if (telaId === "metas") listarMetas();
+      const botaoTela = botao || document.querySelector(`.menu-btn[data-tela="${tela.id}"]`);
+      if (botaoTela) botaoTela.classList.add("active");
+
+      if (salvarEstado) localStorage.setItem("telaAtualControleComissao", tela.id);
+
+      if (tela.id === "dashboard") atualizarDashboard();
+      if (tela.id === "relatorios") atualizarFiltros();
+      if (tela.id === "comissoes") listarComissoes();
+      if (tela.id === "metas") listarMetas();
+    }
+
+    function abrirTelaInicial() {
+      const telaSalva = localStorage.getItem("telaAtualControleComissao") || "dashboard";
+      const telaExiste = document.getElementById(telaSalva);
+      abrirTela(telaExiste ? telaSalva : "dashboard", null, false);
     }
 
     function mostrarMensagem(id, texto, tipo) {
@@ -193,7 +258,7 @@
       let id = "", status = "Ativo";
       if (indice !== "") { id = colaboradores[indice].id; status = colaboradores[indice].ativo ? "Ativo" : "Inativo"; }
       try {
-        const r = await chamarAPI({ acao:"salvarColaborador", id, nome, email, status });
+        const r = await chamarAPI({ acao:"salvarColaborador", id, nome, email, status }, "Salvando colaborador...");
         if (r.status !== "ok") return mostrarMensagem("msgColaborador", r.mensagem || "Erro ao salvar colaborador.", "erro");
         this.reset(); document.getElementById("indiceEdicaoColaborador").value = ""; document.getElementById("btnSalvarColaborador").textContent = "Salvar Colaborador";
         mostrarMensagem("msgColaborador", r.mensagem || "Colaborador salvo com sucesso.", "sucesso"); await carregarDadosIniciais();
@@ -218,7 +283,7 @@
     }
 
     async function alterarStatusColaborador(index) {
-      const r = await chamarAPI({ acao:"alterarStatusColaborador", id: colaboradores[index].id });
+      const r = await chamarAPI({ acao:"alterarStatusColaborador", id: colaboradores[index].id }, "Atualizando status...");
       if (r.status !== "ok") return alert(r.mensagem || "Erro ao alterar status.");
       await carregarDadosIniciais();
     }
@@ -230,7 +295,7 @@
       const colaborador = document.getElementById("colaboradorComissao").value;
       const quantidade = Number(document.getElementById("quantidadeComissao").value);
       const valor = Number(document.getElementById("valorComissao").value);
-      const r = await chamarAPI({ acao:"salvarComissao", id, data, colaborador, quantidade, valor });
+      const r = await chamarAPI({ acao:"salvarComissao", id, data, colaborador, quantidade, valor }, "Salvando comissão...");
       if (r.status !== "ok") return mostrarMensagem("msgComissao", r.mensagem || "Erro ao salvar comissão.", "erro");
       this.reset(); document.getElementById("idEdicaoComissao").value = ""; document.getElementById("btnSalvarComissao").textContent = "Salvar Comissão";
       mostrarMensagem("msgComissao", r.mensagem || "Comissão salva com sucesso.", "sucesso"); await carregarDadosIniciais();
@@ -258,7 +323,7 @@
       const colaborador = document.getElementById("colaboradorMeta").value;
       const mes = document.getElementById("mesMeta").value;
       const valor = Number(document.getElementById("valorMeta").value);
-      const r = await chamarAPI({ acao:"salvarMeta", id, colaborador, mes, valor });
+      const r = await chamarAPI({ acao:"salvarMeta", id, colaborador, mes, valor }, "Salvando meta...");
       if (r.status !== "ok") return mostrarMensagem("msgMeta", r.mensagem || "Erro ao salvar meta.", "erro");
       this.reset(); document.getElementById("idEdicaoMeta").value = ""; document.getElementById("btnSalvarMeta").textContent = "Salvar Meta";
       mostrarMensagem("msgMeta", r.mensagem || "Meta salva com sucesso.", "sucesso"); await carregarDadosIniciais();
@@ -355,7 +420,11 @@
       doc.save(`relatorio_comissoes_${colaborador}_${mes}.pdf`);
     }
 
-    document.addEventListener("DOMContentLoaded", function() { document.getElementById("filtroDashboardMes").value = mesAtual(); carregarDadosIniciais(); });
+    document.addEventListener("DOMContentLoaded", async function() {
+      document.getElementById("filtroDashboardMes").value = mesAtual();
+      await carregarDadosIniciais();
+      abrirTelaInicial();
+    });
   </script>
 </body>
 </html>
