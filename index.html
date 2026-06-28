@@ -1,833 +1,361 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controle de Comissões</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Comissões</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    body {
-      margin: 0;
-      background: #f4f6f9;
-      color: #1f2937;
-    }
-
-    .app {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 260px;
-      background: linear-gradient(180deg, #00285C, #001b3f);
-      color: white;
-      padding: 24px 18px;
-      position: fixed;
-      height: 100vh;
-    }
-
-    .logo {
-      font-size: 23px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .subtitulo {
-      font-size: 12px;
-      color: #cbd5e1;
-      margin-bottom: 30px;
-    }
-
-    .menu button {
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 10px;
-      border: none;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.12);
-      color: white;
-      font-size: 15px;
-      cursor: pointer;
-      text-align: left;
-      font-weight: bold;
-    }
-
-    .menu button:hover,
-    .menu button.ativo {
-      background: white;
-      color: #00285C;
-    }
-
-    .conteudo {
-      margin-left: 260px;
-      width: calc(100% - 260px);
-      padding: 28px;
-    }
-
-    .topo {
-      background: white;
-      border-radius: 16px;
-      padding: 22px;
-      margin-bottom: 22px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-    }
-
-    .topo h1 {
-      margin: 0;
-      color: #00285C;
-      font-size: 24px;
-    }
-
-    .topo p {
-      margin: 6px 0 0;
-      color: #64748b;
-      font-size: 14px;
-    }
-
-    .card {
-      background: white;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-      margin-bottom: 22px;
-    }
-
-    .card h2 {
-      margin-top: 0;
-      color: #00285C;
-      font-size: 21px;
-    }
-
-    label {
-      display: block;
-      margin-top: 14px;
-      font-weight: bold;
-      font-size: 14px;
-      color: #334155;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 13px;
-      margin-top: 6px;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      font-size: 15px;
-      background: white;
-    }
-
-    input:focus, select:focus {
-      outline: none;
-      border-color: #00285C;
-      box-shadow: 0 0 0 3px rgba(0,40,92,0.12);
-    }
-
-    .linha {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .status-box {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 6px;
-    }
-
-    .status-box button {
-      padding: 13px;
-      border-radius: 10px;
-      border: 1px solid #d1d5db;
-      background: white;
-      cursor: pointer;
-      font-weight: bold;
-      color: #475569;
-    }
-
-    .status-box button.ativo {
-      background: #16a34a;
-      color: white;
-      border-color: #16a34a;
-    }
-
-    .status-box button.inativo {
-      background: #dc2626;
-      color: white;
-      border-color: #dc2626;
-    }
-
-    .acoes-form {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      margin-top: 22px;
-    }
-
-    .btn-salvar {
-      padding: 15px;
-      background: #16a34a;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .btn-salvar:hover {
-      background: #15803d;
-    }
-
-    .btn-cancelar {
-      padding: 15px 20px;
-      background: #64748b;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      cursor: pointer;
-      font-weight: bold;
-      display: none;
-    }
-
-    .btn-cancelar:hover {
-      background: #475569;
-    }
-
-    .mensagem {
-      margin-top: 15px;
-      padding: 12px;
-      border-radius: 8px;
-      display: none;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    .sucesso {
-      display: block;
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .erro {
-      display: block;
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .oculto {
-      display: none;
-    }
-
-    .tabela-area {
-      overflow-x: auto;
-      margin-top: 12px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 720px;
-    }
-
-    th {
-      background: #00285C;
-      color: white;
-      text-align: left;
-      padding: 12px;
-      font-size: 13px;
-    }
-
-    td {
-      padding: 11px;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 14px;
-    }
-
-    tr:hover td {
-      background: #f8fafc;
-    }
-
-    .badge {
-      padding: 5px 9px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .badge-ativo {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .badge-inativo {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .btn-editar {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 8px;
-      background: #f59e0b;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .btn-editar:hover {
-      background: #d97706;
-    }
-
-    .vazio {
-      color: #64748b;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-
-    footer {
-      margin-top: 30px;
-      color: #888;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    footer strong {
-      font-style: italic;
-    }
-
-    @media (max-width: 760px) {
-      .app {
-        flex-direction: column;
-      }
-
-      .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-      }
-
-      .conteudo {
-        margin-left: 0;
-        width: 100%;
-        padding: 16px;
-      }
-
-      .linha,
-      .acoes-form {
-        grid-template-columns: 1fr;
-      }
-
-      .btn-cancelar {
-        width: 100%;
-      }
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    :root { --azul:#0f4c81; --azul-claro:#e0f2fe; --verde:#22c55e; --verde-escuro:#16a34a; --cinza-bg:#f5f9ff; --cinza-texto:#64748b; --borda:#dbeafe; --vermelho:#ef4444; --branco:#ffffff; }
+    body { margin:0; background:var(--cinza-bg); color:#1f2937; display:flex; min-height:100vh; }
+    .sidebar { width:245px; background:var(--branco); border-right:1px solid var(--borda); padding:24px 16px; box-shadow:2px 0 12px rgba(0,0,0,.04); position:fixed; left:0; top:0; bottom:0; }
+    .sidebar h2 { color:var(--azul); font-size:21px; margin:0 0 30px; text-align:center; }
+    .menu-btn { width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:10px; background:var(--azul-claro); color:var(--azul); font-size:15px; font-weight:bold; cursor:pointer; text-align:left; transition:.25s; }
+    .menu-btn:hover,.menu-btn.active { background:var(--verde); color:var(--branco); }
+    .main { flex:1; margin-left:245px; padding:36px; display:flex; flex-direction:column; min-height:100vh; }
+    .container { width:100%; max-width:1120px; background:var(--branco); padding:30px; border-radius:18px; box-shadow:0 8px 24px rgba(15,76,129,.10); margin:0 auto; }
+    h1 { margin-top:0; color:var(--azul); text-align:center; }
+    .subtitle { text-align:center; color:var(--cinza-texto); margin-bottom:28px; }
+    .tela { display:none; } .tela.ativa { display:block; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; align-items:end; }
+    label { display:block; margin-bottom:8px; font-weight:bold; color:#334155; }
+    input,select { width:100%; padding:13px; border:1px solid #cbd5e1; border-radius:10px; margin-bottom:18px; font-size:15px; outline:none; background:var(--branco); }
+    input:focus,select:focus { border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.15); }
+    .btn { border:none; border-radius:10px; padding:12px 16px; font-weight:bold; cursor:pointer; transition:.25s; font-size:14px; }
+    .btn-principal { width:100%; padding:15px; border-radius:12px; background:var(--verde); color:var(--branco); font-size:16px; }
+    .btn-principal:hover { background:var(--verde-escuro); }
+    .btn-editar { background:#0ea5e9; color:var(--branco); }
+    .btn-status { background:var(--verde); color:var(--branco); } .btn-status.inativo { background:var(--vermelho); }
+    .btn-excel { background:var(--verde); color:var(--branco); } .btn-pdf { background:var(--azul); color:var(--branco); }
+    .acoes { display:flex; gap:8px; flex-wrap:wrap; }
+    table { width:100%; border-collapse:collapse; margin-top:24px; font-size:14px; overflow:hidden; border-radius:12px; }
+    th { background:var(--azul); color:var(--branco); padding:12px; text-align:left; }
+    td { padding:12px; border-bottom:1px solid #e2e8f0; } tr.inativo { opacity:.45; background:#f8fafc; }
+    .card-resumo { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:24px 0; }
+    .card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px; }
+    .card span { display:block; color:var(--cinza-texto); font-size:13px; margin-bottom:8px; } .card strong { color:var(--azul); font-size:22px; }
+    .card.meta-ok strong { color:var(--verde); } .card.meta-nao strong { color:var(--vermelho); }
+    .grafico-box { margin-top:24px; height:390px; }
+    .mensagem { display:none; margin-top:16px; padding:12px; border-radius:10px; text-align:center; font-weight:bold; }
+    .sucesso { display:block; background:#dcfce7; color:#166534; } .erro { display:block; background:#fee2e2; color:#991b1b; }
+    .relatorio-cabecalho { display:none; background:#f8fafc; border:1px solid #e2e8f0; padding:18px; border-radius:14px; margin:22px 0; line-height:1.8; }
+    .relatorio-cabecalho strong { color:var(--azul); }
+    footer { text-align:center; font-size:12px; color:#94a3b8; margin-top:30px; }
+    @media (max-width:850px) {
+      body { flex-direction:column; } .sidebar { width:100%; position:static; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+      .sidebar h2 { width:100%; margin-bottom:12px; } .menu-btn { width:auto; min-width:135px; text-align:center; margin-bottom:0; }
+      .main { margin-left:0; padding:18px; } .container { padding:20px; } .grid-2,.grid-3,.card-resumo { grid-template-columns:1fr; }
+      table { display:block; overflow-x:auto; white-space:nowrap; } .grafico-box { height:320px; }
     }
   </style>
 </head>
-
 <body>
-
-  <div class="app">
-
-    <aside class="sidebar">
-      <div class="logo">Comissões</div>
-      <div class="subtitulo">Controle diário de produção</div>
-
-      <div class="menu">
-        <button id="btnColaborador" class="ativo" onclick="mostrarTela('colaborador')">
-          👤 Cadastro de Colaborador
-        </button>
-
-        <button id="btnComissao" onclick="mostrarTela('comissao')">
-          💰 Cadastro de Comissões
-        </button>
-      </div>
-    </aside>
-
-    <main class="conteudo">
-
-      <div class="topo">
-        <h1>Controle de Comissões Realizadas por Dia</h1>
-        <p>Cadastre colaboradores, atualize status e registre as comissões realizadas diariamente.</p>
-      </div>
-
-      <section id="telaColaborador">
-
-        <div class="card">
-          <h2 id="tituloColaborador">Cadastro de Colaborador</h2>
-
-          <div class="linha">
-            <div>
-              <label>Nome do Colaborador</label>
-              <input type="text" id="nomeColaborador" placeholder="Digite o nome do colaborador">
-            </div>
-
-            <div>
-              <label>E-mail</label>
-              <input type="email" id="emailColaborador" placeholder="Digite o e-mail do colaborador">
-            </div>
-          </div>
-
-          <label>Status</label>
-          <div class="status-box">
-            <button id="btnStatusAtivo" class="ativo" onclick="selecionarStatus('Ativo')" type="button">
-              Ativo
-            </button>
-
-            <button id="btnStatusInativo" onclick="selecionarStatus('Inativo')" type="button">
-              Inativo
-            </button>
-          </div>
-
-          <div class="acoes-form">
-            <button id="btnSalvarColaborador" class="btn-salvar" onclick="salvarColaborador()">
-              Salvar Colaborador
-            </button>
-
-            <button id="btnCancelarColaborador" class="btn-cancelar" onclick="limparFormularioColaborador()">
-              Cancelar
-            </button>
-          </div>
-
-          <div id="msgColaborador" class="mensagem"></div>
+  <aside class="sidebar">
+    <h2>Comissões</h2>
+    <button class="menu-btn active" onclick="abrirTela('dashboard', this)">Dashboard</button>
+    <button class="menu-btn" onclick="abrirTela('colaboradores', this)">Colaboradores</button>
+    <button class="menu-btn" onclick="abrirTela('comissoes', this)">Comissões</button>
+    <button class="menu-btn" onclick="abrirTela('metas', this)">Metas</button>
+    <button class="menu-btn" onclick="abrirTela('relatorios', this)">Relatórios</button>
+  </aside>
+  <main class="main">
+    <div class="container">
+      <section id="dashboard" class="tela ativa">
+        <h1>Dashboard</h1><p class="subtitle">Acompanhe a evolução diária e o atingimento da meta mensal</p>
+        <div class="grid-2">
+          <div><label for="filtroDashboardColaborador">Filtrar por colaborador</label><select id="filtroDashboardColaborador" onchange="atualizarDashboard()"><option value="">Todos os colaboradores ativos</option></select></div>
+          <div><label for="filtroDashboardMes">Mês/Ano</label><input type="month" id="filtroDashboardMes" onchange="atualizarDashboard()"></div>
         </div>
-
-        <div class="card">
-          <h2>Colaboradores Cadastrados</h2>
-          <div id="listaColaboradores" class="tabela-area"></div>
+        <div class="card-resumo">
+          <div class="card"><span>Total de comissões</span><strong id="dashTotalValor">R$ 0,00</strong></div>
+          <div class="card"><span>Meta do mês</span><strong id="dashMetaMes">R$ 0,00</strong></div>
+          <div class="card"><span>% atingido</span><strong id="dashPercentualMeta">0%</strong></div>
+          <div class="card" id="cardStatusMeta"><span>Status da meta</span><strong id="dashStatusMeta">Sem meta</strong></div>
         </div>
-
+        <div class="grafico-box"><canvas id="graficoMeta"></canvas></div>
+        <div class="grafico-box"><canvas id="graficoDashboard"></canvas></div>
       </section>
-
-      <section id="telaComissao" class="oculto">
-
-        <div class="card">
-          <h2 id="tituloComissao">Cadastro de Comissões</h2>
-
-          <div class="linha">
-            <div>
-              <label>Data</label>
-              <input type="date" id="dataComissao">
-            </div>
-
-            <div>
-              <label>Colaborador</label>
-              <select id="colaboradorComissao">
-                <option value="">Selecione</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="linha">
-            <div>
-              <label>Quantidade</label>
-              <input type="number" id="quantidadeComissao" placeholder="Digite a quantidade">
-            </div>
-
-            <div>
-              <label>Valor</label>
-              <input type="number" id="valorComissao" step="0.01" placeholder="Digite o valor">
-            </div>
-          </div>
-
-          <div class="acoes-form">
-            <button id="btnSalvarComissao" class="btn-salvar" onclick="salvarComissao()">
-              Salvar Comissão
-            </button>
-
-            <button id="btnCancelarComissao" class="btn-cancelar" onclick="limparFormularioComissao()">
-              Cancelar
-            </button>
-          </div>
-
-          <div id="msgComissao" class="mensagem"></div>
-        </div>
-
-        <div class="card">
-          <h2>Comissões Cadastradas</h2>
-          <div id="listaComissoes" class="tabela-area"></div>
-        </div>
-
+      <section id="colaboradores" class="tela">
+        <h1>Cadastro de Colaboradores</h1><p class="subtitle">Cadastre, edite, ative ou inative colaboradores</p>
+        <form id="formColaborador"><input type="hidden" id="indiceEdicaoColaborador"><div class="grid-2">
+          <div><label for="nomeColaborador">Nome</label><input type="text" id="nomeColaborador" placeholder="Digite o nome do colaborador" required></div>
+          <div><label for="emailColaborador">E-mail</label><input type="email" id="emailColaborador" placeholder="Digite o e-mail do colaborador" required></div>
+        </div><button type="submit" class="btn btn-principal" id="btnSalvarColaborador">Salvar Colaborador</button></form>
+        <div id="msgColaborador" class="mensagem"></div>
+        <table><thead><tr><th>Nome</th><th>E-mail</th><th>Status</th><th>Ações</th></tr></thead><tbody id="listaColaboradores"></tbody></table>
       </section>
-
-      <footer>
-        Desenvolvido por <strong>Roberto Lino</strong>
-      </footer>
-
-    </main>
-
-  </div>
-
+      <section id="comissoes" class="tela">
+        <h1>Lançamento de Comissões</h1><p class="subtitle">Registre e edite as comissões geradas por colaborador</p>
+        <form id="formComissao"><input type="hidden" id="idEdicaoComissao"><div class="grid-2">
+          <div><label for="dataComissao">Data</label><input type="date" id="dataComissao" required></div>
+          <div><label for="colaboradorComissao">Colaborador</label><select id="colaboradorComissao" required><option value="">Selecione...</option></select></div>
+        </div><div class="grid-2">
+          <div><label for="quantidadeComissao">Quantidade</label><input type="number" id="quantidadeComissao" min="0" step="1" placeholder="Digite a quantidade" required></div>
+          <div><label for="valorComissao">Valor</label><input type="number" id="valorComissao" min="0" step="0.01" placeholder="Digite o valor" required></div>
+        </div><button type="submit" class="btn btn-principal" id="btnSalvarComissao">Salvar Comissão</button></form>
+        <div id="msgComissao" class="mensagem"></div>
+        <table><thead><tr><th>Data</th><th>Colaborador</th><th>Quantidade</th><th>Valor</th><th>Ações</th></tr></thead><tbody id="listaComissoes"></tbody></table>
+      </section>
+      <section id="metas" class="tela">
+        <h1>Metas</h1><p class="subtitle">Cadastre a meta mensal por colaborador</p>
+        <form id="formMeta"><input type="hidden" id="idEdicaoMeta"><div class="grid-3">
+          <div><label for="colaboradorMeta">Colaborador</label><select id="colaboradorMeta" required><option value="">Selecione...</option></select></div>
+          <div><label for="mesMeta">Mês/Ano</label><input type="month" id="mesMeta" required></div>
+          <div><label for="valorMeta">Valor da Meta</label><input type="number" id="valorMeta" min="0" step="0.01" placeholder="Digite a meta" required></div>
+        </div><button type="submit" class="btn btn-principal" id="btnSalvarMeta">Salvar Meta</button></form>
+        <div id="msgMeta" class="mensagem"></div>
+        <table><thead><tr><th>Colaborador</th><th>Mês/Ano</th><th>Valor da Meta</th><th>Ações</th></tr></thead><tbody id="listaMetas"></tbody></table>
+      </section>
+      <section id="relatorios" class="tela">
+        <h1>Relatórios</h1><p class="subtitle">Filtre por colaborador e mês para exportar em Excel ou PDF</p>
+        <div class="grid-3">
+          <div><label for="filtroRelatorioColaborador">Colaborador</label><select id="filtroRelatorioColaborador"><option value="">Selecione...</option></select></div>
+          <div><label for="filtroRelatorioMes">Mês/Ano</label><input type="month" id="filtroRelatorioMes"></div>
+          <div><button class="btn btn-principal" onclick="filtrarRelatorio()">Filtrar Relatório</button></div>
+        </div>
+        <div id="cabecalhoRelatorio" class="relatorio-cabecalho"></div>
+        <div class="acoes"><button class="btn btn-excel" onclick="exportarExcel()">Exportar Excel</button><button class="btn btn-pdf" onclick="exportarPDF()">Exportar PDF</button></div>
+        <table><thead><tr><th>Data</th><th>Colaborador</th><th>Quantidade</th><th>Valor</th></tr></thead><tbody id="listaRelatorio"></tbody></table>
+      </section>
+    </div>
+    <footer>Desenvolvido por Roberto Lino</footer>
+  </main>
   <script>
-    const URL_API = "https://script.google.com/macros/s/AKfycbwMPAiulfrqE8Ap8-a_s9C5POSUQGtb8NtrSYlvoZbaYGnV7dKEB0CVQnTh2Wqa3wJm/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbz2eolWi9RBdfPYOQkaGUjAHk1Pdnd7OQFqUv8MNxBop8XszXNCMa8vhnZUqVeHWdr55A/exec";
+    let colaboradores = [], comissoes = [], metas = [], relatorioFiltrado = [];
+    let graficoDashboard = null, graficoMeta = null;
 
-    let statusSelecionado = "Ativo";
-    let idColaboradorEdicao = null;
-    let idComissaoEdicao = null;
-
-    let cacheColaboradores = [];
-    let cacheComissoes = [];
-
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("dataComissao").valueAsDate = new Date();
-      carregarTudo();
-    });
-
-    function carregarTudo() {
-      carregarColaboradoresAtivos();
-      carregarListaColaboradores();
-      carregarListaComissoes();
+    async function chamarAPI(payload) {
+      const resposta = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+      return await resposta.json();
     }
 
-    function mostrarTela(tela) {
-      document.getElementById("telaColaborador").classList.add("oculto");
-      document.getElementById("telaComissao").classList.add("oculto");
-
-      document.getElementById("btnColaborador").classList.remove("ativo");
-      document.getElementById("btnComissao").classList.remove("ativo");
-
-      if (tela === "colaborador") {
-        document.getElementById("telaColaborador").classList.remove("oculto");
-        document.getElementById("btnColaborador").classList.add("ativo");
-        carregarListaColaboradores();
-      }
-
-      if (tela === "comissao") {
-        document.getElementById("telaComissao").classList.remove("oculto");
-        document.getElementById("btnComissao").classList.add("ativo");
-        carregarColaboradoresAtivos();
-        carregarListaComissoes();
+    async function carregarDadosIniciais() {
+      try {
+        const respColaboradores = await chamarAPI({ acao: "listarColaboradores" });
+        const respComissoes = await chamarAPI({ acao: "listarComissoes" });
+        const respMetas = await chamarAPI({ acao: "listarMetas" });
+        colaboradores = (respColaboradores.colaboradores || []).map(c => ({ id:c.id, nome:c.nome, email:c.email, ativo:c.status === "Ativo", status:c.status }));
+        comissoes = (respComissoes.comissoes || []).map(c => ({ id:c.id, data:c.data, colaborador:c.colaborador, quantidade:Number(c.quantidade || 0), valor:Number(c.valor || 0) }));
+        metas = (respMetas.metas || []).map(m => ({ id:m.id, colaborador:m.colaborador, mes:m.mes, valor:Number(m.valor || 0) }));
+        listarColaboradores(); listarComissoes(); listarMetas(); atualizarFiltros(); atualizarDashboard();
+      } catch (erro) {
+        alert("Não foi possível carregar os dados. Atualize o Apps Script com as funções de metas e edição.");
+        console.error(erro);
       }
     }
 
-    function selecionarStatus(status) {
-      statusSelecionado = status;
-
-      const btnAtivo = document.getElementById("btnStatusAtivo");
-      const btnInativo = document.getElementById("btnStatusInativo");
-
-      btnAtivo.className = "";
-      btnInativo.className = "";
-
-      if (status === "Ativo") {
-        btnAtivo.classList.add("ativo");
-      } else {
-        btnInativo.classList.add("inativo");
-      }
+    function abrirTela(telaId, botao) {
+      document.querySelectorAll(".tela").forEach(t => t.classList.remove("ativa"));
+      document.getElementById(telaId).classList.add("ativa");
+      document.querySelectorAll(".menu-btn").forEach(b => b.classList.remove("active"));
+      botao.classList.add("active");
+      if (telaId === "dashboard") atualizarDashboard();
+      if (telaId === "relatorios") atualizarFiltros();
+      if (telaId === "comissoes") listarComissoes();
+      if (telaId === "metas") listarMetas();
     }
 
     function mostrarMensagem(id, texto, tipo) {
       const msg = document.getElementById(id);
-      msg.textContent = texto;
-      msg.className = "mensagem " + tipo;
-
-      setTimeout(() => {
-        msg.className = "mensagem";
-        msg.textContent = "";
-      }, 3500);
+      msg.textContent = texto; msg.className = "mensagem " + tipo;
+      setTimeout(() => { msg.className = "mensagem"; msg.textContent = ""; }, 2500);
     }
 
-    async function getDados(acao) {
-      const resposta = await fetch(URL_API + "?acao=" + acao);
-      return await resposta.json();
+    function formatarMoeda(valor) { return Number(valor || 0).toLocaleString("pt-BR", { style:"currency", currency:"BRL" }); }
+    function formatarData(dataISO) { if (!dataISO) return ""; const p = dataISO.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataISO; }
+    function nomeMesAno(valorMonth) { if (!valorMonth) return ""; const [ano, mes] = valorMonth.split("-"); return new Date(Number(ano), Number(mes)-1, 1).toLocaleDateString("pt-BR", { month:"long", year:"numeric" }); }
+    function mesAtual() { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; }
+    function obterColaboradoresAtivosOrdenados() { return colaboradores.filter(c => c.ativo).sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR")); }
+
+    function atualizarFiltros() {
+      const ativos = obterColaboradoresAtivosOrdenados();
+      ["colaboradorComissao","filtroDashboardColaborador","filtroRelatorioColaborador","colaboradorMeta"].forEach(id => {
+        const select = document.getElementById(id); if (!select) return;
+        const atual = select.value;
+        select.innerHTML = id === "filtroDashboardColaborador" ? '<option value="">Todos os colaboradores ativos</option>' : '<option value="">Selecione...</option>';
+        ativos.forEach(c => { const op = document.createElement("option"); op.value = c.nome; op.textContent = c.nome; select.appendChild(op); });
+        if ([...select.options].some(o => o.value === atual)) select.value = atual;
+      });
+      if (!document.getElementById("filtroDashboardMes").value) document.getElementById("filtroDashboardMes").value = mesAtual();
     }
 
-    async function enviarDados(dados) {
-      await fetch(URL_API, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(dados)
+    document.getElementById("formColaborador").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const nome = document.getElementById("nomeColaborador").value.trim();
+      const email = document.getElementById("emailColaborador").value.trim();
+      const indice = document.getElementById("indiceEdicaoColaborador").value;
+      let id = "", status = "Ativo";
+      if (indice !== "") { id = colaboradores[indice].id; status = colaboradores[indice].ativo ? "Ativo" : "Inativo"; }
+      try {
+        const r = await chamarAPI({ acao:"salvarColaborador", id, nome, email, status });
+        if (r.status !== "ok") return mostrarMensagem("msgColaborador", r.mensagem || "Erro ao salvar colaborador.", "erro");
+        this.reset(); document.getElementById("indiceEdicaoColaborador").value = ""; document.getElementById("btnSalvarColaborador").textContent = "Salvar Colaborador";
+        mostrarMensagem("msgColaborador", r.mensagem || "Colaborador salvo com sucesso.", "sucesso"); await carregarDadosIniciais();
+      } catch (erro) { mostrarMensagem("msgColaborador", "Erro ao conectar com o Google Sheets.", "erro"); }
+    });
+
+    function listarColaboradores() {
+      const lista = document.getElementById("listaColaboradores"); lista.innerHTML = "";
+      [...colaboradores].sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(c => {
+        const idx = colaboradores.indexOf(c); const tr = document.createElement("tr"); if (!c.ativo) tr.classList.add("inativo");
+        tr.innerHTML = `<td>${c.nome}</td><td>${c.email}</td><td>${c.ativo ? "Ativo" : "Inativo"}</td><td><div class="acoes"><button class="btn btn-editar" onclick="editarColaborador(${idx})">Editar</button><button class="btn btn-status ${c.ativo ? "" : "inativo"}" onclick="alterarStatusColaborador(${idx})">${c.ativo ? "Ativo" : "Inativo"}</button></div></td>`;
+        lista.appendChild(tr);
       });
     }
 
-    async function carregarColaboradoresAtivos() {
-      const select = document.getElementById("colaboradorComissao");
-
-      try {
-        const colaboradores = await getDados("listarColaboradores");
-
-        select.innerHTML = '<option value="">Selecione</option>';
-
-        colaboradores.forEach(colaborador => {
-          const option = document.createElement("option");
-          option.value = colaborador.nome;
-          option.textContent = colaborador.nome;
-          select.appendChild(option);
-        });
-
-      } catch (erro) {
-        console.error("Erro ao carregar colaboradores ativos:", erro);
-      }
-    }
-
-    async function carregarListaColaboradores() {
-      const area = document.getElementById("listaColaboradores");
-
-      try {
-        cacheColaboradores = await getDados("listarTodosColaboradores");
-
-        if (!cacheColaboradores.length) {
-          area.innerHTML = '<p class="vazio">Nenhum colaborador cadastrado ainda.</p>';
-          return;
-        }
-
-        let html = `
-          <table>
-            <thead>
-              <tr>
-                <th>Colaborador</th>
-                <th>E-mail</th>
-                <th>Status</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        cacheColaboradores.forEach(item => {
-          const statusClasse = item.status === "Ativo" ? "badge-ativo" : "badge-inativo";
-
-          html += `
-            <tr>
-              <td>${item.nome || ""}</td>
-              <td>${item.email || ""}</td>
-              <td><span class="badge ${statusClasse}">${item.status || ""}</span></td>
-              <td>
-                <button class="btn-editar" onclick="editarColaborador('${item.id}')">Editar</button>
-              </td>
-            </tr>
-          `;
-        });
-
-        html += `
-            </tbody>
-          </table>
-        `;
-
-        area.innerHTML = html;
-
-      } catch (erro) {
-        area.innerHTML = '<p class="vazio">Erro ao carregar colaboradores.</p>';
-      }
-    }
-
-    async function carregarListaComissoes() {
-      const area = document.getElementById("listaComissoes");
-
-      try {
-        cacheComissoes = await getDados("listarComissoes");
-
-        if (!cacheComissoes.length) {
-          area.innerHTML = '<p class="vazio">Nenhuma comissão cadastrada ainda.</p>';
-          return;
-        }
-
-        let html = `
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Colaborador</th>
-                <th>Quantidade</th>
-                <th>Valor</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        cacheComissoes.forEach(item => {
-          html += `
-            <tr>
-              <td>${formatarDataTela(item.data)}</td>
-              <td>${item.colaborador || ""}</td>
-              <td>${item.quantidade || ""}</td>
-              <td>${formatarMoeda(item.valor)}</td>
-              <td>
-                <button class="btn-editar" onclick="editarComissao('${item.id}')">Editar</button>
-              </td>
-            </tr>
-          `;
-        });
-
-        html += `
-            </tbody>
-          </table>
-        `;
-
-        area.innerHTML = html;
-
-      } catch (erro) {
-        area.innerHTML = '<p class="vazio">Erro ao carregar comissões.</p>';
-      }
-    }
-
-    async function salvarColaborador() {
-      const nome = document.getElementById("nomeColaborador").value.trim();
-      const email = document.getElementById("emailColaborador").value.trim();
-
-      if (!nome) {
-        mostrarMensagem("msgColaborador", "Preencha o nome do colaborador.", "erro");
-        return;
-      }
-
-      if (!email) {
-        mostrarMensagem("msgColaborador", "Preencha o e-mail do colaborador.", "erro");
-        return;
-      }
-
-      const acao = idColaboradorEdicao ? "atualizarColaborador" : "salvarColaborador";
-
-      try {
-        await enviarDados({
-          acao: acao,
-          id: idColaboradorEdicao,
-          nome: nome,
-          email: email,
-          status: statusSelecionado
-        });
-
-        limparFormularioColaborador();
-        mostrarMensagem("msgColaborador", idColaboradorEdicao ? "Colaborador atualizado com sucesso." : "Colaborador salvo com sucesso.", "sucesso");
-
-        setTimeout(() => {
-          carregarColaboradoresAtivos();
-          carregarListaColaboradores();
-        }, 800);
-
-      } catch (erro) {
-        mostrarMensagem("msgColaborador", "Erro ao salvar colaborador.", "erro");
-      }
-    }
-
-    function editarColaborador(id) {
-      const item = cacheColaboradores.find(c => String(c.id) === String(id));
-
-      if (!item) return;
-
-      idColaboradorEdicao = item.id;
-
-      document.getElementById("nomeColaborador").value = item.nome || "";
-      document.getElementById("emailColaborador").value = item.email || "";
-      selecionarStatus(item.status || "Ativo");
-
-      document.getElementById("tituloColaborador").textContent = "Editar Colaborador";
+    function editarColaborador(index) {
+      document.getElementById("nomeColaborador").value = colaboradores[index].nome;
+      document.getElementById("emailColaborador").value = colaboradores[index].email;
+      document.getElementById("indiceEdicaoColaborador").value = index;
       document.getElementById("btnSalvarColaborador").textContent = "Atualizar Colaborador";
-      document.getElementById("btnCancelarColaborador").style.display = "block";
-
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function limparFormularioColaborador() {
-      idColaboradorEdicao = null;
-
-      document.getElementById("nomeColaborador").value = "";
-      document.getElementById("emailColaborador").value = "";
-      selecionarStatus("Ativo");
-
-      document.getElementById("tituloColaborador").textContent = "Cadastro de Colaborador";
-      document.getElementById("btnSalvarColaborador").textContent = "Salvar Colaborador";
-      document.getElementById("btnCancelarColaborador").style.display = "none";
+    async function alterarStatusColaborador(index) {
+      const r = await chamarAPI({ acao:"alterarStatusColaborador", id: colaboradores[index].id });
+      if (r.status !== "ok") return alert(r.mensagem || "Erro ao alterar status.");
+      await carregarDadosIniciais();
     }
 
-    async function salvarComissao() {
+    document.getElementById("formComissao").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const id = document.getElementById("idEdicaoComissao").value;
       const data = document.getElementById("dataComissao").value;
       const colaborador = document.getElementById("colaboradorComissao").value;
-      const quantidade = document.getElementById("quantidadeComissao").value;
-      const valor = document.getElementById("valorComissao").value;
+      const quantidade = Number(document.getElementById("quantidadeComissao").value);
+      const valor = Number(document.getElementById("valorComissao").value);
+      const r = await chamarAPI({ acao:"salvarComissao", id, data, colaborador, quantidade, valor });
+      if (r.status !== "ok") return mostrarMensagem("msgComissao", r.mensagem || "Erro ao salvar comissão.", "erro");
+      this.reset(); document.getElementById("idEdicaoComissao").value = ""; document.getElementById("btnSalvarComissao").textContent = "Salvar Comissão";
+      mostrarMensagem("msgComissao", r.mensagem || "Comissão salva com sucesso.", "sucesso"); await carregarDadosIniciais();
+    });
 
-      if (!data || !colaborador || !quantidade || !valor) {
-        mostrarMensagem("msgComissao", "Preencha todos os campos.", "erro");
-        return;
-      }
-
-      const acao = idComissaoEdicao ? "atualizarComissao" : "salvarComissao";
-
-      try {
-        await enviarDados({
-          acao: acao,
-          id: idComissaoEdicao,
-          data: data,
-          colaborador: colaborador,
-          quantidade: quantidade,
-          valor: valor
-        });
-
-        limparFormularioComissao();
-        mostrarMensagem("msgComissao", idComissaoEdicao ? "Comissão atualizada com sucesso." : "Comissão salva com sucesso.", "sucesso");
-
-        setTimeout(carregarListaComissoes, 800);
-
-      } catch (erro) {
-        mostrarMensagem("msgComissao", "Erro ao salvar comissão.", "erro");
-      }
+    function listarComissoes() {
+      const lista = document.getElementById("listaComissoes"); lista.innerHTML = "";
+      [...comissoes].sort((a,b) => b.data.localeCompare(a.data)).forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td><td><button class="btn btn-editar" onclick="editarComissao('${c.id}')">Editar</button></td>`;
+        lista.appendChild(tr);
+      });
     }
 
     function editarComissao(id) {
-      const item = cacheComissoes.find(c => String(c.id) === String(id));
-
-      if (!item) return;
-
-      idComissaoEdicao = item.id;
-
-      document.getElementById("dataComissao").value = item.data || "";
-      document.getElementById("colaboradorComissao").value = item.colaborador || "";
-      document.getElementById("quantidadeComissao").value = item.quantidade || "";
-      document.getElementById("valorComissao").value = item.valor || "";
-
-      document.getElementById("tituloComissao").textContent = "Editar Comissão";
-      document.getElementById("btnSalvarComissao").textContent = "Atualizar Comissão";
-      document.getElementById("btnCancelarComissao").style.display = "block";
-
+      const c = comissoes.find(x => String(x.id) === String(id)); if (!c) return;
+      document.getElementById("idEdicaoComissao").value = c.id; document.getElementById("dataComissao").value = c.data; document.getElementById("colaboradorComissao").value = c.colaborador;
+      document.getElementById("quantidadeComissao").value = c.quantidade; document.getElementById("valorComissao").value = c.valor; document.getElementById("btnSalvarComissao").textContent = "Atualizar Comissão";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function limparFormularioComissao() {
-      idComissaoEdicao = null;
+    document.getElementById("formMeta").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const id = document.getElementById("idEdicaoMeta").value;
+      const colaborador = document.getElementById("colaboradorMeta").value;
+      const mes = document.getElementById("mesMeta").value;
+      const valor = Number(document.getElementById("valorMeta").value);
+      const r = await chamarAPI({ acao:"salvarMeta", id, colaborador, mes, valor });
+      if (r.status !== "ok") return mostrarMensagem("msgMeta", r.mensagem || "Erro ao salvar meta.", "erro");
+      this.reset(); document.getElementById("idEdicaoMeta").value = ""; document.getElementById("btnSalvarMeta").textContent = "Salvar Meta";
+      mostrarMensagem("msgMeta", r.mensagem || "Meta salva com sucesso.", "sucesso"); await carregarDadosIniciais();
+    });
 
-      document.getElementById("dataComissao").valueAsDate = new Date();
-      document.getElementById("colaboradorComissao").value = "";
-      document.getElementById("quantidadeComissao").value = "";
-      document.getElementById("valorComissao").value = "";
-
-      document.getElementById("tituloComissao").textContent = "Cadastro de Comissões";
-      document.getElementById("btnSalvarComissao").textContent = "Salvar Comissão";
-      document.getElementById("btnCancelarComissao").style.display = "none";
-    }
-
-    function formatarMoeda(valor) {
-      const numero = Number(String(valor).replace(",", "."));
-
-      if (isNaN(numero)) return valor || "";
-
-      return numero.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
+    function listarMetas() {
+      const lista = document.getElementById("listaMetas"); lista.innerHTML = "";
+      [...metas].sort((a,b) => a.colaborador.localeCompare(b.colaborador, "pt-BR") || b.mes.localeCompare(a.mes)).forEach(m => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${m.colaborador}</td><td>${nomeMesAno(m.mes)}</td><td>${formatarMoeda(m.valor)}</td><td><button class="btn btn-editar" onclick="editarMeta('${m.id}')">Editar</button></td>`;
+        lista.appendChild(tr);
       });
     }
 
-    function formatarDataTela(data) {
-      if (!data) return "";
-
-      const partes = String(data).split("-");
-
-      if (partes.length === 3) {
-        return partes[2] + "/" + partes[1] + "/" + partes[0];
-      }
-
-      return data;
+    function editarMeta(id) {
+      const m = metas.find(x => String(x.id) === String(id)); if (!m) return;
+      document.getElementById("idEdicaoMeta").value = m.id; document.getElementById("colaboradorMeta").value = m.colaborador; document.getElementById("mesMeta").value = m.mes; document.getElementById("valorMeta").value = m.valor; document.getElementById("btnSalvarMeta").textContent = "Atualizar Meta";
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  </script>
 
+    function atualizarDashboard() {
+      atualizarFiltros();
+      const colaboradorSelecionado = document.getElementById("filtroDashboardColaborador").value;
+      const mesSelecionado = document.getElementById("filtroDashboardMes").value || mesAtual();
+      let dados = comissoes.filter(c => c.data && c.data.startsWith(mesSelecionado));
+      if (colaboradorSelecionado) dados = dados.filter(c => c.colaborador === colaboradorSelecionado);
+      else {
+        const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
+        dados = dados.filter(c => ativos.includes(c.colaborador));
+      }
+      const totalValor = dados.reduce((acc,c) => acc + Number(c.valor || 0), 0);
+      let metaMes = 0;
+      if (colaboradorSelecionado) {
+        const m = metas.find(x => x.colaborador === colaboradorSelecionado && x.mes === mesSelecionado);
+        metaMes = m ? Number(m.valor || 0) : 0;
+      } else {
+        const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
+        metaMes = metas.filter(m => m.mes === mesSelecionado && ativos.includes(m.colaborador)).reduce((acc,m) => acc + Number(m.valor || 0), 0);
+      }
+      const percentual = metaMes > 0 ? (totalValor / metaMes) * 100 : 0;
+      const statusMeta = metaMes === 0 ? "Sem meta" : percentual >= 100 ? "Meta batida" : "Abaixo da meta";
+      document.getElementById("dashTotalValor").textContent = formatarMoeda(totalValor);
+      document.getElementById("dashMetaMes").textContent = formatarMoeda(metaMes);
+      document.getElementById("dashPercentualMeta").textContent = `${percentual.toFixed(1).replace(".", ",")}%`;
+      document.getElementById("dashStatusMeta").textContent = statusMeta;
+      const card = document.getElementById("cardStatusMeta"); card.classList.remove("meta-ok","meta-nao"); if (metaMes > 0 && percentual >= 100) card.classList.add("meta-ok"); if (metaMes > 0 && percentual < 100) card.classList.add("meta-nao");
+
+      const agrupado = {}; dados.forEach(c => { if (!agrupado[c.data]) agrupado[c.data] = 0; agrupado[c.data] += Number(c.valor || 0); });
+      const datas = Object.keys(agrupado).sort(); const labels = datas.map(formatarData); const valores = datas.map(d => agrupado[d]);
+
+      if (graficoMeta) graficoMeta.destroy(); if (graficoDashboard) graficoDashboard.destroy();
+      graficoMeta = new Chart(document.getElementById("graficoMeta").getContext("2d"), {
+        type:"bar", data:{ labels:["Realizado","Meta"], datasets:[{ label:"Meta mensal", data:[totalValor, metaMes], backgroundColor:["#22c55e","#0f4c81"], borderRadius:8 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:ctx => formatarMoeda(ctx.raw) } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v => formatarMoeda(v) } } } }
+      });
+      graficoDashboard = new Chart(document.getElementById("graficoDashboard").getContext("2d"), {
+        type:"bar", data:{ labels, datasets:[{ label:"Evolução diária das comissões", data:valores, backgroundColor:"#22c55e", borderColor:"#16a34a", borderWidth:1, borderRadius:8 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:true }, tooltip:{ callbacks:{ label:ctx => "Valor: " + formatarMoeda(ctx.raw) } } }, scales:{ y:{ beginAtZero:true, ticks:{ callback:v => formatarMoeda(v) } } } }
+      });
+    }
+
+    function filtrarRelatorio() {
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
+      const mes = document.getElementById("filtroRelatorioMes").value;
+      if (!colaborador || !mes) return alert("Selecione o colaborador e o mês/ano.");
+      relatorioFiltrado = comissoes.filter(c => c.colaborador === colaborador && c.data.startsWith(mes)).sort((a,b) => a.data.localeCompare(b.data));
+      renderizarRelatorio(colaborador, mes);
+    }
+
+    function renderizarRelatorio(colaborador, mes) {
+      const tbody = document.getElementById("listaRelatorio"); const cab = document.getElementById("cabecalhoRelatorio"); tbody.innerHTML = "";
+      const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
+      cab.style.display = "block"; cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomeMesAno(mes)}<br><strong>Quantidade de Lançamentos:</strong> ${relatorioFiltrado.length}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}`;
+      relatorioFiltrado.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td>`; tbody.appendChild(tr); });
+    }
+
+    function exportarExcel() {
+      if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
+      const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
+      const dados = [["Relatório de Comissões"],["Colaborador", colaborador],["Período", nomeMesAno(mes)],["Quantidade de Lançamentos", relatorioFiltrado.length],["Valor Total das Comissões", valorTotal],[],["Data","Colaborador","Quantidade","Valor"]];
+      relatorioFiltrado.forEach(c => dados.push([formatarData(c.data), c.colaborador, c.quantidade, Number(c.valor || 0)]));
+      const ws = XLSX.utils.aoa_to_sheet(dados), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Relatório"); XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mes}.xlsx`);
+    }
+
+    function exportarPDF() {
+      if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
+      const { jsPDF } = window.jspdf; const doc = new jsPDF();
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
+      const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
+      doc.setFontSize(16); doc.text("Relatório de Comissões", 14, 18); doc.setFontSize(11);
+      doc.text(`Colaborador: ${colaborador}`, 14, 30); doc.text(`Período: ${nomeMesAno(mes)}`, 14, 38); doc.text(`Quantidade de Lançamentos: ${relatorioFiltrado.length}`, 14, 46); doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
+      doc.autoTable({ startY:64, head:[["Data","Colaborador","Quantidade","Valor"]], body:relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]), styles:{ fontSize:9 }, headStyles:{ fillColor:[15,76,129] } });
+      doc.save(`relatorio_comissoes_${colaborador}_${mes}.pdf`);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() { document.getElementById("filtroDashboardMes").value = mesAtual(); carregarDadosIniciais(); });
+  </script>
 </body>
 </html>
-
