@@ -59,6 +59,11 @@
     .sucesso { display:block; background:#dcfce7; color:#166534; } .erro { display:block; background:#fee2e2; color:#991b1b; }
     .relatorio-cabecalho { display:none; background:#f8fafc; border:1px solid #e2e8f0; padding:18px; border-radius:14px; margin:22px 0; line-height:1.8; }
     .relatorio-cabecalho strong { color:var(--azul); }
+    .filtros-lista { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-top:22px; }
+    .paginacao { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:16px; flex-wrap:wrap; }
+    .paginacao span { color:var(--cinza-texto); font-weight:bold; font-size:13px; }
+    .btn-paginacao { background:#e0f2fe; color:var(--azul); }
+    .btn-paginacao:disabled { opacity:.45; cursor:not-allowed; }
     footer { text-align:center; font-size:12px; color:#94a3b8; margin-top:30px; }
     @media (max-width:850px) {
       body { flex-direction:column; } .sidebar { width:100%; position:static; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
@@ -119,6 +124,10 @@
           <div><label for="emailColaborador">E-mail</label><input type="email" id="emailColaborador" placeholder="Digite o e-mail do colaborador" required></div>
         </div><button type="submit" class="btn btn-principal" id="btnSalvarColaborador">Salvar Colaborador</button></form>
         <div id="msgColaborador" class="mensagem"></div>
+        <div class="filtros-lista">
+          <label for="buscaColaborador">Buscar colaborador</label>
+          <input type="text" id="buscaColaborador" placeholder="Digite parte do nome do colaborador" oninput="listarColaboradores()">
+        </div>
         <table><thead><tr><th>Nome</th><th>E-mail</th><th>Status</th><th>Ações</th></tr></thead><tbody id="listaColaboradores"></tbody></table>
       </section>
       <section id="comissoes" class="tela">
@@ -131,7 +140,26 @@
           <div><label for="valorComissao">Valor</label><input type="number" id="valorComissao" min="0" step="0.01" placeholder="Digite o valor" required></div>
         </div><button type="submit" class="btn btn-principal" id="btnSalvarComissao">Salvar Comissão</button></form>
         <div id="msgComissao" class="mensagem"></div>
+        <div class="filtros-lista">
+          <div class="grid-2">
+            <div>
+              <label for="filtroComissaoColaborador">Filtrar por colaborador</label>
+              <select id="filtroComissaoColaborador" onchange="paginaAtualComissoes = 1; listarComissoes();">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div>
+              <label for="filtroComissaoMes">Filtrar por mês/ano</label>
+              <input type="month" id="filtroComissaoMes" onchange="paginaAtualComissoes = 1; listarComissoes();">
+            </div>
+          </div>
+        </div>
         <table><thead><tr><th>Data</th><th>Colaborador</th><th>Quantidade</th><th>Valor</th><th>Ações</th></tr></thead><tbody id="listaComissoes"></tbody></table>
+        <div class="paginacao">
+          <button class="btn btn-paginacao" id="btnPaginaAnteriorComissao" onclick="mudarPaginaComissoes(-1)">Anterior</button>
+          <span id="infoPaginaComissao">Página 1 de 1</span>
+          <button class="btn btn-paginacao" id="btnProximaPaginaComissao" onclick="mudarPaginaComissoes(1)">Próxima</button>
+        </div>
       </section>
       <section id="metas" class="tela">
         <h1>Metas</h1><p class="subtitle">Cadastre a meta mensal por colaborador</p>
@@ -160,6 +188,8 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbz2eolWi9RBdfPYOQkaGUjAHk1Pdnd7OQFqUv8MNxBop8XszXNCMa8vhnZUqVeHWdr55A/exec";
     let colaboradores = [], comissoes = [], metas = [], relatorioFiltrado = [];
+    let paginaAtualComissoes = 1;
+    const itensPorPaginaComissoes = 10;
     let graficoDashboard = null, graficoMeta = null;
 
     function mostrarCarregando(texto = "Salvando dados...") {
@@ -240,10 +270,14 @@
 
     function atualizarFiltros() {
       const ativos = obterColaboradoresAtivosOrdenados();
-      ["colaboradorComissao","filtroDashboardColaborador","filtroRelatorioColaborador","colaboradorMeta"].forEach(id => {
+      ["colaboradorComissao","filtroDashboardColaborador","filtroRelatorioColaborador","colaboradorMeta","filtroComissaoColaborador"].forEach(id => {
         const select = document.getElementById(id); if (!select) return;
         const atual = select.value;
-        select.innerHTML = id === "filtroDashboardColaborador" ? '<option value="">Todos os colaboradores ativos</option>' : '<option value="">Selecione...</option>';
+        select.innerHTML = id === "filtroDashboardColaborador"
+          ? '<option value="">Todos os colaboradores ativos</option>'
+          : id === "filtroComissaoColaborador"
+            ? '<option value="">Todos</option>'
+            : '<option value="">Selecione...</option>';
         ativos.forEach(c => { const op = document.createElement("option"); op.value = c.nome; op.textContent = c.nome; select.appendChild(op); });
         if ([...select.options].some(o => o.value === atual)) select.value = atual;
       });
@@ -266,12 +300,24 @@
     });
 
     function listarColaboradores() {
-      const lista = document.getElementById("listaColaboradores"); lista.innerHTML = "";
-      [...colaboradores].sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(c => {
-        const idx = colaboradores.indexOf(c); const tr = document.createElement("tr"); if (!c.ativo) tr.classList.add("inativo");
-        tr.innerHTML = `<td>${c.nome}</td><td>${c.email}</td><td>${c.ativo ? "Ativo" : "Inativo"}</td><td><div class="acoes"><button class="btn btn-editar" onclick="editarColaborador(${idx})">Editar</button><button class="btn btn-status ${c.ativo ? "" : "inativo"}" onclick="alterarStatusColaborador(${idx})">${c.ativo ? "Ativo" : "Inativo"}</button></div></td>`;
-        lista.appendChild(tr);
-      });
+      const lista = document.getElementById("listaColaboradores");
+      lista.innerHTML = "";
+
+      const termo = (document.getElementById("buscaColaborador")?.value || "").toLowerCase().trim();
+
+      [...colaboradores]
+        .filter(c => !termo || String(c.nome || "").toLowerCase().includes(termo))
+        .sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR"))
+        .forEach(c => {
+          const idx = colaboradores.indexOf(c);
+          const tr = document.createElement("tr");
+
+          if (!c.ativo) tr.classList.add("inativo");
+
+          tr.innerHTML = `<td>${c.nome}</td><td>${c.email}</td><td>${c.ativo ? "Ativo" : "Inativo"}</td><td><div class="acoes"><button class="btn btn-editar" onclick="editarColaborador(${idx})">Editar</button><button class="btn btn-status ${c.ativo ? "" : "inativo"}" onclick="alterarStatusColaborador(${idx})">${c.ativo ? "Ativo" : "Inativo"}</button></div></td>`;
+
+          lista.appendChild(tr);
+        });
     }
 
     function editarColaborador(index) {
@@ -302,12 +348,50 @@
     });
 
     function listarComissoes() {
-      const lista = document.getElementById("listaComissoes"); lista.innerHTML = "";
-      [...comissoes].sort((a,b) => b.data.localeCompare(a.data)).forEach(c => {
+      const lista = document.getElementById("listaComissoes");
+      lista.innerHTML = "";
+
+      const filtroColaborador = document.getElementById("filtroComissaoColaborador")?.value || "";
+      const filtroMes = document.getElementById("filtroComissaoMes")?.value || "";
+
+      let dados = [...comissoes];
+
+      if (filtroColaborador) {
+        dados = dados.filter(c => c.colaborador === filtroColaborador);
+      }
+
+      if (filtroMes) {
+        dados = dados.filter(c => c.data && c.data.startsWith(filtroMes));
+      }
+
+      dados.sort((a,b) => b.data.localeCompare(a.data));
+
+      const totalPaginas = Math.max(1, Math.ceil(dados.length / itensPorPaginaComissoes));
+
+      if (paginaAtualComissoes > totalPaginas) paginaAtualComissoes = totalPaginas;
+      if (paginaAtualComissoes < 1) paginaAtualComissoes = 1;
+
+      const inicio = (paginaAtualComissoes - 1) * itensPorPaginaComissoes;
+      const fim = inicio + itensPorPaginaComissoes;
+
+      dados.slice(inicio, fim).forEach(c => {
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td><td><button class="btn btn-editar" onclick="editarComissao('${c.id}')">Editar</button></td>`;
         lista.appendChild(tr);
       });
+
+      const info = document.getElementById("infoPaginaComissao");
+      const btnAnterior = document.getElementById("btnPaginaAnteriorComissao");
+      const btnProxima = document.getElementById("btnProximaPaginaComissao");
+
+      if (info) info.textContent = `Página ${paginaAtualComissoes} de ${totalPaginas} | ${dados.length} registro(s)`;
+      if (btnAnterior) btnAnterior.disabled = paginaAtualComissoes <= 1;
+      if (btnProxima) btnProxima.disabled = paginaAtualComissoes >= totalPaginas;
+    }
+
+    function mudarPaginaComissoes(direcao) {
+      paginaAtualComissoes += direcao;
+      listarComissoes();
     }
 
     function editarComissao(id) {
@@ -396,7 +480,8 @@
     function renderizarRelatorio(colaborador, mes) {
       const tbody = document.getElementById("listaRelatorio"); const cab = document.getElementById("cabecalhoRelatorio"); tbody.innerHTML = "";
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      cab.style.display = "block"; cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomeMesAno(mes)}<br><strong>Quantidade de Lançamentos:</strong> ${relatorioFiltrado.length}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}`;
+      const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
+      cab.style.display = "block"; cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomeMesAno(mes)}<br><strong>Quantidade Total:</strong> ${quantidadeTotal}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}`;
       relatorioFiltrado.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td>`; tbody.appendChild(tr); });
     }
 
@@ -404,7 +489,8 @@
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
       const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      const dados = [["Relatório de Comissões"],["Colaborador", colaborador],["Período", nomeMesAno(mes)],["Quantidade de Lançamentos", relatorioFiltrado.length],["Valor Total das Comissões", valorTotal],[],["Data","Colaborador","Quantidade","Valor"]];
+      const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
+      const dados = [["Relatório de Comissões"],["Colaborador", colaborador],["Período", nomeMesAno(mes)],["Quantidade Total", quantidadeTotal],["Valor Total das Comissões", valorTotal],[],["Data","Colaborador","Quantidade","Valor"]];
       relatorioFiltrado.forEach(c => dados.push([formatarData(c.data), c.colaborador, c.quantidade, Number(c.valor || 0)]));
       const ws = XLSX.utils.aoa_to_sheet(dados), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Relatório"); XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mes}.xlsx`);
     }
@@ -414,8 +500,9 @@
       const { jsPDF } = window.jspdf; const doc = new jsPDF();
       const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
+      const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
       doc.setFontSize(16); doc.text("Relatório de Comissões", 14, 18); doc.setFontSize(11);
-      doc.text(`Colaborador: ${colaborador}`, 14, 30); doc.text(`Período: ${nomeMesAno(mes)}`, 14, 38); doc.text(`Quantidade de Lançamentos: ${relatorioFiltrado.length}`, 14, 46); doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
+      doc.text(`Colaborador: ${colaborador}`, 14, 30); doc.text(`Período: ${nomeMesAno(mes)}`, 14, 38); doc.text(`Quantidade Total: ${quantidadeTotal}`, 14, 46); doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
       doc.autoTable({ startY:64, head:[["Data","Colaborador","Quantidade","Valor"]], body:relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]), styles:{ fontSize:9 }, headStyles:{ fillColor:[15,76,129] } });
       doc.save(`relatorio_comissoes_${colaborador}_${mes}.pdf`);
     }
