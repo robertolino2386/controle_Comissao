@@ -64,6 +64,7 @@
     .paginacao span { color:var(--cinza-texto); font-weight:bold; font-size:13px; }
     .btn-paginacao { background:#e0f2fe; color:var(--azul); }
     .btn-paginacao:disabled { opacity:.45; cursor:not-allowed; }
+    .hint-filtro { color:var(--cinza-texto); font-size:12px; margin-top:-10px; margin-bottom:14px; display:block; }
     footer { text-align:center; font-size:12px; color:#94a3b8; margin-top:30px; }
     @media (max-width:850px) {
       body { flex-direction:column; } .sidebar { width:100%; position:static; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
@@ -106,7 +107,13 @@
         <h1>Dashboard</h1><p class="subtitle">Acompanhe a evolução diária e o atingimento da meta mensal</p>
         <div class="grid-2">
           <div><label for="filtroDashboardColaborador">Filtrar por colaborador</label><select id="filtroDashboardColaborador" onchange="atualizarDashboard()"><option value="">Todos os colaboradores ativos</option></select></div>
-          <div><label for="filtroDashboardMes">Mês/Ano</label><input type="month" id="filtroDashboardMes" onchange="atualizarDashboard()"></div>
+          <div>
+            <div class="grid-2">
+              <div><label for="filtroDashboardMesInicio">Mês inicial</label><input type="month" id="filtroDashboardMesInicio" onchange="atualizarDashboard()"></div>
+              <div><label for="filtroDashboardMesFim">Mês final</label><input type="month" id="filtroDashboardMesFim" onchange="atualizarDashboard()"></div>
+            </div>
+            <span class="hint-filtro">Para um único mês, selecione o mesmo mês nos dois campos.</span>
+          </div>
         </div>
         <div class="card-resumo">
           <div class="card"><span>Total de comissões</span><strong id="dashTotalValor">R$ 0,00</strong></div>
@@ -155,8 +162,10 @@
               </select>
             </div>
             <div>
-              <label for="filtroComissaoMes">Filtrar por mês/ano</label>
-              <input type="month" id="filtroComissaoMes" onchange="paginaAtualComissoes = 1; listarComissoes();">
+              <div class="grid-2">
+                <div><label for="filtroComissaoMesInicio">Mês inicial</label><input type="month" id="filtroComissaoMesInicio" onchange="paginaAtualComissoes = 1; listarComissoes();"></div>
+                <div><label for="filtroComissaoMesFim">Mês final</label><input type="month" id="filtroComissaoMesFim" onchange="paginaAtualComissoes = 1; listarComissoes();"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -181,7 +190,13 @@
         <h1>Relatórios</h1><p class="subtitle">Filtre por colaborador e mês para exportar em Excel ou PDF</p>
         <div class="grid-3">
           <div><label for="filtroRelatorioColaborador">Colaborador</label><select id="filtroRelatorioColaborador"><option value="">Selecione...</option></select></div>
-          <div><label for="filtroRelatorioMes">Mês/Ano</label><input type="month" id="filtroRelatorioMes"></div>
+          <div>
+            <label>Período</label>
+            <div class="grid-2">
+              <input type="month" id="filtroRelatorioMesInicio" title="Mês inicial">
+              <input type="month" id="filtroRelatorioMesFim" title="Mês final">
+            </div>
+          </div>
           <div><button class="btn btn-principal" onclick="filtrarRelatorio()">Filtrar Relatório</button></div>
         </div>
         <div id="cabecalhoRelatorio" class="relatorio-cabecalho"></div>
@@ -234,8 +249,8 @@
         metas = (respMetas.metas || []).map(m => ({ id:m.id, colaborador:m.colaborador, mes:m.mes, valor:Number(m.valor || 0) }));
         listarColaboradores(); listarComissoes(); listarMetas(); atualizarFiltros(); atualizarDashboard();
       } catch (erro) {
-        alert("Não foi possível carregar os dados. Atualize o Apps Script com as funções de metas e edição.");
         console.error(erro);
+        alert("Não foi possível carregar os dados. Detalhe: " + (erro.message || erro));
       }
     }
 
@@ -271,6 +286,84 @@
     function formatarMoeda(valor) { return Number(valor || 0).toLocaleString("pt-BR", { style:"currency", currency:"BRL" }); }
     function formatarData(dataISO) { if (!dataISO) return ""; const p = dataISO.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataISO; }
     function nomeMesAno(valorMonth) { if (!valorMonth) return ""; const [ano, mes] = valorMonth.split("-"); return new Date(Number(ano), Number(mes)-1, 1).toLocaleDateString("pt-BR", { month:"long", year:"numeric" }); }
+
+    function nomePeriodoMes(inicio, fim) {
+      if (!inicio && !fim) return "";
+      if (!fim || inicio === fim) return nomeMesAno(inicio);
+      return `${nomeMesAno(inicio)} até ${nomeMesAno(fim)}`;
+    }
+
+    function normalizarPeriodo(inicio, fim) {
+      const mesBase = inicio || fim || mesAtual();
+      return { inicio: inicio || mesBase, fim: fim || inicio || mesBase };
+    }
+
+    function estaNoPeriodo(dataISO, inicio, fim) {
+      if (!dataISO) return false;
+      const mesData = String(dataISO).slice(0, 7);
+      const periodo = normalizarPeriodo(inicio, fim);
+      return mesData >= periodo.inicio && mesData <= periodo.fim;
+    }
+
+    function somarMetasPeriodo(colaboradorSelecionado, inicio, fim) {
+      const periodo = normalizarPeriodo(inicio, fim);
+      const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
+
+      return metas
+        .filter(m => m.mes >= periodo.inicio && m.mes <= periodo.fim)
+        .filter(m => colaboradorSelecionado ? m.colaborador === colaboradorSelecionado : ativos.includes(m.colaborador))
+        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+    }
+
+    function gerarMesesPeriodo(inicio, fim) {
+      const periodo = normalizarPeriodo(inicio, fim);
+      const [anoInicio, mesInicio] = periodo.inicio.split("-").map(Number);
+      const [anoFim, mesFim] = periodo.fim.split("-").map(Number);
+      const meses = [];
+      const data = new Date(anoInicio, mesInicio - 1, 1);
+      const limite = new Date(anoFim, mesFim - 1, 1);
+
+      while (data <= limite) {
+        meses.push(`${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`);
+        data.setMonth(data.getMonth() + 1);
+      }
+
+      return meses;
+    }
+
+    function opcoesGraficoPadrao() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${formatarMoeda(context.raw)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false, drawBorder: false },
+            border: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { display: false, drawBorder: false },
+            border: { display: false },
+            ticks: {
+              callback: function(value) {
+                return formatarMoeda(value);
+              }
+            }
+          }
+        }
+      };
+    }
+
     function mesAtual() { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; }
     function obterColaboradoresAtivosOrdenados() { return colaboradores.filter(c => c.ativo).sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR")); }
 
@@ -287,7 +380,8 @@
         ativos.forEach(c => { const op = document.createElement("option"); op.value = c.nome; op.textContent = c.nome; select.appendChild(op); });
         if ([...select.options].some(o => o.value === atual)) select.value = atual;
       });
-      if (!document.getElementById("filtroDashboardMes").value) document.getElementById("filtroDashboardMes").value = mesAtual();
+      if (document.getElementById("filtroDashboardMesInicio") && !document.getElementById("filtroDashboardMesInicio").value) document.getElementById("filtroDashboardMesInicio").value = mesAtual();
+      if (document.getElementById("filtroDashboardMesFim") && !document.getElementById("filtroDashboardMesFim").value) document.getElementById("filtroDashboardMesFim").value = mesAtual();
     }
 
     document.getElementById("formColaborador").addEventListener("submit", async function(e) {
@@ -358,7 +452,8 @@
       lista.innerHTML = "";
 
       const filtroColaborador = document.getElementById("filtroComissaoColaborador")?.value || "";
-      const filtroMes = document.getElementById("filtroComissaoMes")?.value || "";
+      const filtroMesInicio = document.getElementById("filtroComissaoMesInicio")?.value || "";
+      const filtroMesFim = document.getElementById("filtroComissaoMesFim")?.value || "";
 
       let dados = [...comissoes];
 
@@ -366,8 +461,8 @@
         dados = dados.filter(c => c.colaborador === filtroColaborador);
       }
 
-      if (filtroMes) {
-        dados = dados.filter(c => c.data && c.data.startsWith(filtroMes));
+      if (filtroMesInicio || filtroMesFim) {
+        dados = dados.filter(c => estaNoPeriodo(c.data, filtroMesInicio, filtroMesFim));
       }
 
       dados.sort((a,b) => b.data.localeCompare(a.data));
@@ -436,35 +531,50 @@
 
     function atualizarDashboard() {
       atualizarFiltros();
+
       const colaboradorSelecionado = document.getElementById("filtroDashboardColaborador").value;
-      const mesSelecionado = document.getElementById("filtroDashboardMes").value || mesAtual();
-      let dados = comissoes.filter(c => c.data && c.data.startsWith(mesSelecionado));
-      if (colaboradorSelecionado) dados = dados.filter(c => c.colaborador === colaboradorSelecionado);
-      else {
+      const mesInicio = document.getElementById("filtroDashboardMesInicio")?.value || mesAtual();
+      const mesFim = document.getElementById("filtroDashboardMesFim")?.value || mesInicio;
+
+      let dados = comissoes.filter(c => estaNoPeriodo(c.data, mesInicio, mesFim));
+
+      if (colaboradorSelecionado) {
+        dados = dados.filter(c => c.colaborador === colaboradorSelecionado);
+      } else {
         const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
         dados = dados.filter(c => ativos.includes(c.colaborador));
       }
+
       const totalValor = dados.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      let metaMes = 0;
-      if (colaboradorSelecionado) {
-        const m = metas.find(x => x.colaborador === colaboradorSelecionado && x.mes === mesSelecionado);
-        metaMes = m ? Number(m.valor || 0) : 0;
-      } else {
-        const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
-        metaMes = metas.filter(m => m.mes === mesSelecionado && ativos.includes(m.colaborador)).reduce((acc,m) => acc + Number(m.valor || 0), 0);
-      }
+      const metaMes = somarMetasPeriodo(colaboradorSelecionado, mesInicio, mesFim);
+
       const percentual = metaMes > 0 ? (totalValor / metaMes) * 100 : 0;
       const statusMeta = metaMes === 0 ? "Sem meta" : percentual >= 100 ? "Meta batida" : "Abaixo da meta";
+
       document.getElementById("dashTotalValor").textContent = formatarMoeda(totalValor);
       document.getElementById("dashMetaMes").textContent = formatarMoeda(metaMes);
       document.getElementById("dashPercentualMeta").textContent = `${percentual.toFixed(1).replace(".", ",")}%`;
       document.getElementById("dashStatusMeta").textContent = statusMeta;
-      const card = document.getElementById("cardStatusMeta"); card.classList.remove("meta-ok","meta-nao"); if (metaMes > 0 && percentual >= 100) card.classList.add("meta-ok"); if (metaMes > 0 && percentual < 100) card.classList.add("meta-nao");
 
-      const agrupado = {}; dados.forEach(c => { if (!agrupado[c.data]) agrupado[c.data] = 0; agrupado[c.data] += Number(c.valor || 0); });
-      const datas = Object.keys(agrupado).sort(); const labels = datas.map(formatarData); const valores = datas.map(d => agrupado[d]);
+      const card = document.getElementById("cardStatusMeta");
+      card.classList.remove("meta-ok","meta-nao");
+      if (metaMes > 0 && percentual >= 100) card.classList.add("meta-ok");
+      if (metaMes > 0 && percentual < 100) card.classList.add("meta-nao");
 
-      if (graficoMensal) graficoMensal.destroy(); if (graficoMeta) graficoMeta.destroy(); if (graficoDashboard) graficoDashboard.destroy();
+      const agrupado = {};
+      dados.forEach(c => {
+        if (!agrupado[c.data]) agrupado[c.data] = 0;
+        agrupado[c.data] += Number(c.valor || 0);
+      });
+
+      const datas = Object.keys(agrupado).sort();
+      const labels = datas.map(formatarData);
+      const valores = datas.map(d => agrupado[d]);
+
+      if (graficoMensal) graficoMensal.destroy();
+      if (graficoMeta) graficoMeta.destroy();
+      if (graficoDashboard) graficoDashboard.destroy();
+
       const mesesPeriodo = gerarMesesPeriodo(mesInicio, mesFim);
       const dadosMensais = mesesPeriodo.map(mes => {
         const realizado = dados
@@ -522,6 +632,7 @@
           }
         }
       });
+
       graficoDashboard = new Chart(document.getElementById("graficoDashboard").getContext("2d"), {
         type: "bar",
         data: {
@@ -631,7 +742,8 @@
     }
 
     document.addEventListener("DOMContentLoaded", async function() {
-      document.getElementById("filtroDashboardMes").value = mesAtual();
+      document.getElementById("filtroDashboardMesInicio").value = mesAtual();
+      document.getElementById("filtroDashboardMesFim").value = mesAtual();
       await carregarDadosIniciais();
       abrirTelaInicial();
     });
