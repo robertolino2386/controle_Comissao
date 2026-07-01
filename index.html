@@ -64,6 +64,7 @@
     .paginacao span { color:var(--cinza-texto); font-weight:bold; font-size:13px; }
     .btn-paginacao { background:#e0f2fe; color:var(--azul); }
     .btn-paginacao:disabled { opacity:.45; cursor:not-allowed; }
+    .hint-filtro { color:var(--cinza-texto); font-size:12px; margin-top:-10px; margin-bottom:14px; display:block; }
     footer { text-align:center; font-size:12px; color:#94a3b8; margin-top:30px; }
     @media (max-width:850px) {
       body { flex-direction:column; } .sidebar { width:100%; position:static; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
@@ -106,7 +107,13 @@
         <h1>Dashboard</h1><p class="subtitle">Acompanhe a evolução diária e o atingimento da meta mensal</p>
         <div class="grid-2">
           <div><label for="filtroDashboardColaborador">Filtrar por colaborador</label><select id="filtroDashboardColaborador" onchange="atualizarDashboard()"><option value="">Todos os colaboradores ativos</option></select></div>
-          <div><label for="filtroDashboardMes">Mês/Ano</label><input type="month" id="filtroDashboardMes" onchange="atualizarDashboard()"></div>
+          <div>
+            <div class="grid-2">
+              <div><label for="filtroDashboardMesInicio">Mês inicial</label><input type="month" id="filtroDashboardMesInicio" onchange="atualizarDashboard()"></div>
+              <div><label for="filtroDashboardMesFim">Mês final</label><input type="month" id="filtroDashboardMesFim" onchange="atualizarDashboard()"></div>
+            </div>
+            <span class="hint-filtro">Para um único mês, selecione o mesmo mês nos dois campos.</span>
+          </div>
         </div>
         <div class="card-resumo">
           <div class="card"><span>Total de comissões</span><strong id="dashTotalValor">R$ 0,00</strong></div>
@@ -149,8 +156,10 @@
               </select>
             </div>
             <div>
-              <label for="filtroComissaoMes">Filtrar por mês/ano</label>
-              <input type="month" id="filtroComissaoMes" onchange="paginaAtualComissoes = 1; listarComissoes();">
+              <div class="grid-2">
+                <div><label for="filtroComissaoMesInicio">Mês inicial</label><input type="month" id="filtroComissaoMesInicio" onchange="paginaAtualComissoes = 1; listarComissoes();"></div>
+                <div><label for="filtroComissaoMesFim">Mês final</label><input type="month" id="filtroComissaoMesFim" onchange="paginaAtualComissoes = 1; listarComissoes();"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -175,7 +184,13 @@
         <h1>Relatórios</h1><p class="subtitle">Filtre por colaborador e mês para exportar em Excel ou PDF</p>
         <div class="grid-3">
           <div><label for="filtroRelatorioColaborador">Colaborador</label><select id="filtroRelatorioColaborador"><option value="">Selecione...</option></select></div>
-          <div><label for="filtroRelatorioMes">Mês/Ano</label><input type="month" id="filtroRelatorioMes"></div>
+          <div>
+            <label>Período</label>
+            <div class="grid-2">
+              <input type="month" id="filtroRelatorioMesInicio" title="Mês inicial">
+              <input type="month" id="filtroRelatorioMesFim" title="Mês final">
+            </div>
+          </div>
           <div><button class="btn btn-principal" onclick="filtrarRelatorio()">Filtrar Relatório</button></div>
         </div>
         <div id="cabecalhoRelatorio" class="relatorio-cabecalho"></div>
@@ -265,6 +280,29 @@
     function formatarMoeda(valor) { return Number(valor || 0).toLocaleString("pt-BR", { style:"currency", currency:"BRL" }); }
     function formatarData(dataISO) { if (!dataISO) return ""; const p = dataISO.split("-"); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataISO; }
     function nomeMesAno(valorMonth) { if (!valorMonth) return ""; const [ano, mes] = valorMonth.split("-"); return new Date(Number(ano), Number(mes)-1, 1).toLocaleDateString("pt-BR", { month:"long", year:"numeric" }); }
+    function nomePeriodoMes(inicio, fim) {
+      if (!inicio && !fim) return "";
+      if (!fim || inicio === fim) return nomeMesAno(inicio);
+      return `${nomeMesAno(inicio)} até ${nomeMesAno(fim)}`;
+    }
+    function normalizarPeriodo(inicio, fim) {
+      const mesBase = inicio || fim || mesAtual();
+      return { inicio: inicio || mesBase, fim: fim || inicio || mesBase };
+    }
+    function estaNoPeriodo(dataISO, inicio, fim) {
+      if (!dataISO) return false;
+      const mesData = String(dataISO).slice(0, 7);
+      const periodo = normalizarPeriodo(inicio, fim);
+      return mesData >= periodo.inicio && mesData <= periodo.fim;
+    }
+    function somarMetasPeriodo(colaboradorSelecionado, inicio, fim) {
+      const periodo = normalizarPeriodo(inicio, fim);
+      const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
+      return metas
+        .filter(m => m.mes >= periodo.inicio && m.mes <= periodo.fim)
+        .filter(m => colaboradorSelecionado ? m.colaborador === colaboradorSelecionado : ativos.includes(m.colaborador))
+        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+    }
     function mesAtual() { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,"0")}`; }
     function obterColaboradoresAtivosOrdenados() { return colaboradores.filter(c => c.ativo).sort((a,b) => a.nome.localeCompare(b.nome, "pt-BR")); }
 
@@ -281,7 +319,8 @@
         ativos.forEach(c => { const op = document.createElement("option"); op.value = c.nome; op.textContent = c.nome; select.appendChild(op); });
         if ([...select.options].some(o => o.value === atual)) select.value = atual;
       });
-      if (!document.getElementById("filtroDashboardMes").value) document.getElementById("filtroDashboardMes").value = mesAtual();
+      if (!document.getElementById("filtroDashboardMesInicio").value) document.getElementById("filtroDashboardMesInicio").value = mesAtual();
+      if (!document.getElementById("filtroDashboardMesFim").value) document.getElementById("filtroDashboardMesFim").value = mesAtual();
     }
 
     document.getElementById("formColaborador").addEventListener("submit", async function(e) {
@@ -352,7 +391,8 @@
       lista.innerHTML = "";
 
       const filtroColaborador = document.getElementById("filtroComissaoColaborador")?.value || "";
-      const filtroMes = document.getElementById("filtroComissaoMes")?.value || "";
+      const filtroMesInicio = document.getElementById("filtroComissaoMesInicio")?.value || "";
+      const filtroMesFim = document.getElementById("filtroComissaoMesFim")?.value || "";
 
       let dados = [...comissoes];
 
@@ -360,8 +400,8 @@
         dados = dados.filter(c => c.colaborador === filtroColaborador);
       }
 
-      if (filtroMes) {
-        dados = dados.filter(c => c.data && c.data.startsWith(filtroMes));
+      if (filtroMesInicio || filtroMesFim) {
+        dados = dados.filter(c => estaNoPeriodo(c.data, filtroMesInicio, filtroMesFim));
       }
 
       dados.sort((a,b) => b.data.localeCompare(a.data));
@@ -431,22 +471,16 @@
     function atualizarDashboard() {
       atualizarFiltros();
       const colaboradorSelecionado = document.getElementById("filtroDashboardColaborador").value;
-      const mesSelecionado = document.getElementById("filtroDashboardMes").value || mesAtual();
-      let dados = comissoes.filter(c => c.data && c.data.startsWith(mesSelecionado));
+      const mesInicio = document.getElementById("filtroDashboardMesInicio").value || mesAtual();
+      const mesFim = document.getElementById("filtroDashboardMesFim").value || mesInicio;
+      let dados = comissoes.filter(c => estaNoPeriodo(c.data, mesInicio, mesFim));
       if (colaboradorSelecionado) dados = dados.filter(c => c.colaborador === colaboradorSelecionado);
       else {
         const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
         dados = dados.filter(c => ativos.includes(c.colaborador));
       }
       const totalValor = dados.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      let metaMes = 0;
-      if (colaboradorSelecionado) {
-        const m = metas.find(x => x.colaborador === colaboradorSelecionado && x.mes === mesSelecionado);
-        metaMes = m ? Number(m.valor || 0) : 0;
-      } else {
-        const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
-        metaMes = metas.filter(m => m.mes === mesSelecionado && ativos.includes(m.colaborador)).reduce((acc,m) => acc + Number(m.valor || 0), 0);
-      }
+      let metaMes = somarMetasPeriodo(colaboradorSelecionado, mesInicio, mesFim);
       const percentual = metaMes > 0 ? (totalValor / metaMes) * 100 : 0;
       const statusMeta = metaMes === 0 ? "Sem meta" : percentual >= 100 ? "Meta batida" : "Abaixo da meta";
       document.getElementById("dashTotalValor").textContent = formatarMoeda(totalValor);
@@ -471,44 +505,104 @@
 
     function filtrarRelatorio() {
       const colaborador = document.getElementById("filtroRelatorioColaborador").value;
-      const mes = document.getElementById("filtroRelatorioMes").value;
-      if (!colaborador || !mes) return alert("Selecione o colaborador e o mês/ano.");
-      relatorioFiltrado = comissoes.filter(c => c.colaborador === colaborador && c.data.startsWith(mes)).sort((a,b) => a.data.localeCompare(b.data));
-      renderizarRelatorio(colaborador, mes);
+      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
+      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
+
+      if (!colaborador || !mesInicio) return alert("Selecione o colaborador e o período.");
+
+      relatorioFiltrado = comissoes
+        .filter(c => c.colaborador === colaborador && estaNoPeriodo(c.data, mesInicio, mesFim))
+        .sort((a,b) => a.data.localeCompare(b.data));
+
+      renderizarRelatorio(colaborador, mesInicio, mesFim);
     }
 
-    function renderizarRelatorio(colaborador, mes) {
+    function renderizarRelatorio(colaborador, mesInicio, mesFim) {
       const tbody = document.getElementById("listaRelatorio"); const cab = document.getElementById("cabecalhoRelatorio"); tbody.innerHTML = "";
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
       const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      cab.style.display = "block"; cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomeMesAno(mes)}<br><strong>Quantidade Total:</strong> ${quantidadeTotal}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}`;
+      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
+      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
+      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
+      cab.style.display = "block"; cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomePeriodoMes(mesInicio, mesFim)}<br><strong>Quantidade Total:</strong> ${quantidadeTotal}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}<br><strong>Meta do Período:</strong> ${formatarMoeda(metaPeriodo)}<br><strong>% Atingido:</strong> ${percentualMeta.toFixed(1).replace(".", ",")}%<br><strong>Status da Meta:</strong> ${statusMeta}`;
       relatorioFiltrado.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td>`; tbody.appendChild(tr); });
     }
 
     function exportarExcel() {
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
-      const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
+
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
+      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
+      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
+
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
       const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      const dados = [["Relatório de Comissões"],["Colaborador", colaborador],["Período", nomeMesAno(mes)],["Quantidade Total", quantidadeTotal],["Valor Total das Comissões", valorTotal],[],["Data","Colaborador","Quantidade","Valor"]];
+      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
+      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
+      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
+
+      const dados = [
+        ["Relatório de Comissões"],
+        ["Colaborador", colaborador],
+        ["Período", nomePeriodoMes(mesInicio, mesFim)],
+        ["Quantidade Total", quantidadeTotal],
+        ["Valor Total das Comissões", valorTotal],
+        ["Meta do Período", metaPeriodo],
+        ["% Atingido", percentualMeta / 100],
+        ["Status da Meta", statusMeta],
+        [],
+        ["Data","Colaborador","Quantidade","Valor"]
+      ];
+
       relatorioFiltrado.forEach(c => dados.push([formatarData(c.data), c.colaborador, c.quantidade, Number(c.valor || 0)]));
-      const ws = XLSX.utils.aoa_to_sheet(dados), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Relatório"); XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mes}.xlsx`);
+
+      const ws = XLSX.utils.aoa_to_sheet(dados), wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+      XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.xlsx`);
     }
 
     function exportarPDF() {
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
-      const { jsPDF } = window.jspdf; const doc = new jsPDF();
-      const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
+      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
+      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
+
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
       const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      doc.setFontSize(16); doc.text("Relatório de Comissões", 14, 18); doc.setFontSize(11);
-      doc.text(`Colaborador: ${colaborador}`, 14, 30); doc.text(`Período: ${nomeMesAno(mes)}`, 14, 38); doc.text(`Quantidade Total: ${quantidadeTotal}`, 14, 46); doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
-      doc.autoTable({ startY:64, head:[["Data","Colaborador","Quantidade","Valor"]], body:relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]), styles:{ fontSize:9 }, headStyles:{ fillColor:[15,76,129] } });
-      doc.save(`relatorio_comissoes_${colaborador}_${mes}.pdf`);
+      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
+      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
+      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
+
+      doc.setFontSize(16);
+      doc.text("Relatório de Comissões", 14, 18);
+
+      doc.setFontSize(11);
+      doc.text(`Colaborador: ${colaborador}`, 14, 30);
+      doc.text(`Período: ${nomePeriodoMes(mesInicio, mesFim)}`, 14, 38);
+      doc.text(`Quantidade Total: ${quantidadeTotal}`, 14, 46);
+      doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
+      doc.text(`Meta do Período: ${formatarMoeda(metaPeriodo)}`, 14, 62);
+      doc.text(`% Atingido: ${percentualMeta.toFixed(1).replace(".", ",")}%`, 14, 70);
+      doc.text(`Status da Meta: ${statusMeta}`, 14, 78);
+
+      doc.autoTable({
+        startY: 88,
+        head: [["Data","Colaborador","Quantidade","Valor"]],
+        body: relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15,76,129] }
+      });
+
+      doc.save(`relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.pdf`);
     }
 
     document.addEventListener("DOMContentLoaded", async function() {
-      document.getElementById("filtroDashboardMes").value = mesAtual();
+      document.getElementById("filtroDashboardMesInicio").value = mesAtual();
+      document.getElementById("filtroDashboardMesFim").value = mesAtual();
       await carregarDadosIniciais();
       abrirTelaInicial();
     });
