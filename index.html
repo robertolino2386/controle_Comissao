@@ -8,6 +8,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <style>
     * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
     :root { --azul:#00285C; --azul-2:#0f4c81; --azul-claro:#e0f2fe; --verde:#22c55e; --verde-escuro:#16a34a; --cinza-bg:#f4f7fb; --cinza-texto:#64748b; --borda:#dbeafe; --vermelho:#ef4444; --branco:#ffffff; --sombra:0 12px 30px rgba(0,40,92,.12); }
@@ -65,6 +67,20 @@
     .btn-paginacao { background:#e0f2fe; color:var(--azul); }
     .btn-paginacao:disabled { opacity:.45; cursor:not-allowed; }
     .hint-filtro { color:var(--cinza-texto); font-size:12px; margin-top:-10px; margin-bottom:14px; display:block; }
+
+    .app-shell { display:none; }
+    .app-shell.ativo { display:block; }
+    .login-page { min-height:100vh; width:100%; display:flex; align-items:center; justify-content:center; padding:24px; background:linear-gradient(135deg,#00285C 0%,#0f4c81 52%,#22c55e 100%); }
+    .login-card { width:100%; max-width:420px; background:#ffffff; border-radius:26px; padding:34px; box-shadow:0 24px 60px rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.5); }
+    .login-logo { display:block; width:160px; height:auto; object-fit:contain; margin:0 auto 22px; }
+    .login-card h1 { margin:0; text-align:center; color:var(--azul); font-size:26px; }
+    .login-card p { text-align:center; color:var(--cinza-texto); margin:8px 0 26px; }
+    .login-card input { margin-bottom:14px; }
+    .login-actions { display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:12px; }
+    .login-msg { display:none; margin-top:14px; padding:12px; border-radius:12px; font-weight:bold; text-align:center; background:#fee2e2; color:#991b1b; font-size:13px; }
+    .login-msg.ativo { display:block; }
+    .user-box { margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0; color:var(--cinza-texto); font-size:12px; text-align:center; word-break:break-word; }
+    .btn-sair { margin-top:18px; width:100%; background:#fee2e2; color:#991b1b; }
     footer { text-align:center; font-size:12px; color:#94a3b8; margin-top:30px; }
     @media (max-width:850px) {
       body { flex-direction:column; } .sidebar { width:100%; position:static; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
@@ -82,6 +98,27 @@
       <span>Aguarde, o sistema está atualizando as informações.</span>
     </div>
   </div>
+  <section id="loginPage" class="login-page">
+    <div class="login-card">
+      <img src="copastur-marca-logo.webp" alt="Copastur" class="login-logo">
+      <h1>Controle de Comissão</h1>
+      <p>Acesse com seu e-mail e senha</p>
+
+      <form id="formLogin">
+        <label for="loginEmail">E-mail</label>
+        <input type="email" id="loginEmail" placeholder="Digite seu e-mail" required>
+
+        <label for="loginSenha">Senha</label>
+        <input type="password" id="loginSenha" placeholder="Digite sua senha" required>
+
+        <button type="submit" class="btn btn-principal">Entrar</button>
+      </form>
+
+      <div id="loginMsg" class="login-msg"></div>
+    </div>
+  </section>
+
+  <div id="appShell" class="app-shell">
   <aside class="sidebar">
     <h2>Comissões</h2>
     <button class="menu-btn" data-tela="dashboard" onclick="abrirTela('dashboard', this)">Dashboard</button>
@@ -89,6 +126,10 @@
     <button class="menu-btn" data-tela="comissoes" onclick="abrirTela('comissoes', this)">Comissões</button>
     <button class="menu-btn" data-tela="metas" onclick="abrirTela('metas', this)">Metas</button>
     <button class="menu-btn" data-tela="relatorios" onclick="abrirTela('relatorios', this)">Relatórios</button>
+    <div class="user-box">
+      <div id="usuarioLogado">Usuário logado</div>
+      <button class="btn btn-sair" onclick="sairSistema()">Sair</button>
+    </div>
   </aside>
   <main class="main">
     <header class="topbar">
@@ -206,7 +247,62 @@
     </div>
     <footer>Desenvolvido por Roberto Lino</footer>
   </main>
+  </div>
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyChNB1_AQGvVtRSNCHJaZFY4vD6sBPJtAM",
+      authDomain: "controle-comissao-f09a1.firebaseapp.com",
+      projectId: "controle-comissao-f09a1",
+      storageBucket: "controle-comissao-f09a1.firebasestorage.app",
+      messagingSenderId: "326340094104",
+      appId: "1:326340094104:web:ff86578b31c4552ea648ed"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    let usuarioAutenticado = null;
+
+    function mostrarErroLogin(texto) {
+      const msg = document.getElementById("loginMsg");
+      msg.textContent = texto;
+      msg.classList.add("ativo");
+    }
+
+    document.getElementById("formLogin").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const email = document.getElementById("loginEmail").value.trim();
+      const senha = document.getElementById("loginSenha").value;
+
+      try {
+        mostrarCarregando("Validando acesso...");
+        await auth.signInWithEmailAndPassword(email, senha);
+        document.getElementById("loginMsg").classList.remove("ativo");
+      } catch (erro) {
+        mostrarErroLogin("E-mail ou senha inválidos.");
+      } finally {
+        esconderCarregando();
+      }
+    });
+
+    function sairSistema() {
+      auth.signOut();
+    }
+
+    function mostrarSistema(user) {
+      usuarioAutenticado = user;
+      document.getElementById("loginPage").style.display = "none";
+      document.getElementById("appShell").classList.add("ativo");
+      document.getElementById("usuarioLogado").textContent = user.email || "Usuário logado";
+    }
+
+    function mostrarLogin() {
+      usuarioAutenticado = null;
+      document.getElementById("appShell").classList.remove("ativo");
+      document.getElementById("loginPage").style.display = "flex";
+    }
+
     const API_URL = "https://script.google.com/macros/s/AKfycbz2eolWi9RBdfPYOQkaGUjAHk1Pdnd7OQFqUv8MNxBop8XszXNCMa8vhnZUqVeHWdr55A/exec";
     let colaboradores = [], comissoes = [], metas = [], relatorioFiltrado = [];
     let paginaAtualComissoes = 1;
@@ -741,11 +837,29 @@
       doc.save(`relatorio_comissoes_${colaborador}_${mes}.pdf`);
     }
 
-    document.addEventListener("DOMContentLoaded", async function() {
-      document.getElementById("filtroDashboardMesInicio").value = mesAtual();
-      document.getElementById("filtroDashboardMesFim").value = mesAtual();
-      await carregarDadosIniciais();
-      abrirTelaInicial();
+    document.addEventListener("DOMContentLoaded", function() {
+      auth.onAuthStateChanged(async function(user) {
+        if (user) {
+          mostrarSistema(user);
+
+          if (document.getElementById("filtroDashboardMesInicio")) {
+            document.getElementById("filtroDashboardMesInicio").value = mesAtual();
+          }
+
+          if (document.getElementById("filtroDashboardMesFim")) {
+            document.getElementById("filtroDashboardMesFim").value = mesAtual();
+          }
+
+          if (document.getElementById("filtroDashboardMes")) {
+            document.getElementById("filtroDashboardMes").value = mesAtual();
+          }
+
+          await carregarDadosIniciais();
+          abrirTelaInicial();
+        } else {
+          mostrarLogin();
+        }
+      });
     });
   </script>
 </body>
