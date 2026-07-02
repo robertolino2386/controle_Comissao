@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -304,6 +303,10 @@
       document.getElementById("loginPage").style.display = "flex";
     }
 
+    function usuarioLogadoEmail() {
+      return usuarioAutenticado && usuarioAutenticado.email ? usuarioAutenticado.email : "";
+    }
+
     const API_URL = "https://script.google.com/macros/s/AKfycbz2eolWi9RBdfPYOQkaGUjAHk1Pdnd7OQFqUv8MNxBop8XszXNCMa8vhnZUqVeHWdr55A/exec";
     let colaboradores = [], comissoes = [], metas = [], relatorioFiltrado = [];
     let paginaAtualComissoes = 1;
@@ -489,7 +492,7 @@
       let id = "", status = "Ativo";
       if (indice !== "") { id = colaboradores[indice].id; status = colaboradores[indice].ativo ? "Ativo" : "Inativo"; }
       try {
-        const r = await chamarAPI({ acao:"salvarColaborador", id, nome, email, status }, "Salvando colaborador...");
+        const r = await chamarAPI({ acao:"salvarColaborador", id, nome, email, status, usuario: usuarioLogadoEmail() }, "Salvando colaborador...");
         if (r.status !== "ok") return mostrarMensagem("msgColaborador", r.mensagem || "Erro ao salvar colaborador.", "erro");
         this.reset(); document.getElementById("indiceEdicaoColaborador").value = ""; document.getElementById("btnSalvarColaborador").textContent = "Salvar Colaborador";
         mostrarMensagem("msgColaborador", r.mensagem || "Colaborador salvo com sucesso.", "sucesso"); await carregarDadosIniciais();
@@ -526,7 +529,7 @@
     }
 
     async function alterarStatusColaborador(index) {
-      const r = await chamarAPI({ acao:"alterarStatusColaborador", id: colaboradores[index].id }, "Atualizando status...");
+      const r = await chamarAPI({ acao:"alterarStatusColaborador", id: colaboradores[index].id, usuario: usuarioLogadoEmail() }, "Atualizando status...");
       if (r.status !== "ok") return alert(r.mensagem || "Erro ao alterar status.");
       await carregarDadosIniciais();
     }
@@ -538,7 +541,7 @@
       const colaborador = document.getElementById("colaboradorComissao").value;
       const quantidade = Number(document.getElementById("quantidadeComissao").value);
       const valor = Number(document.getElementById("valorComissao").value);
-      const r = await chamarAPI({ acao:"salvarComissao", id, data, colaborador, quantidade, valor }, "Salvando comissão...");
+      const r = await chamarAPI({ acao:"salvarComissao", id, data, colaborador, quantidade, valor, usuario: usuarioLogadoEmail() }, "Salvando comissão...");
       if (r.status !== "ok") return mostrarMensagem("msgComissao", r.mensagem || "Erro ao salvar comissão.", "erro");
       this.reset(); document.getElementById("idEdicaoComissao").value = ""; document.getElementById("btnSalvarComissao").textContent = "Salvar Comissão";
       mostrarMensagem("msgComissao", r.mensagem || "Comissão salva com sucesso.", "sucesso"); await carregarDadosIniciais();
@@ -605,7 +608,7 @@
       const colaborador = document.getElementById("colaboradorMeta").value;
       const mes = document.getElementById("mesMeta").value;
       const valor = Number(document.getElementById("valorMeta").value);
-      const r = await chamarAPI({ acao:"salvarMeta", id, colaborador, mes, valor }, "Salvando meta...");
+      const r = await chamarAPI({ acao:"salvarMeta", id, colaborador, mes, valor, usuario: usuarioLogadoEmail() }, "Salvando meta...");
       if (r.status !== "ok") return mostrarMensagem("msgMeta", r.mensagem || "Erro ao salvar meta.", "erro");
       this.reset(); document.getElementById("idEdicaoMeta").value = ""; document.getElementById("btnSalvarMeta").textContent = "Salvar Meta";
       mostrarMensagem("msgMeta", r.mensagem || "Meta salva com sucesso.", "sucesso"); await carregarDadosIniciais();
