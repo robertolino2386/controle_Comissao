@@ -805,40 +805,113 @@
 
     function filtrarRelatorio() {
       const colaborador = document.getElementById("filtroRelatorioColaborador").value;
-      const mes = document.getElementById("filtroRelatorioMes").value;
-      if (!colaborador || !mes) return alert("Selecione o colaborador e o mês/ano.");
-      relatorioFiltrado = comissoes.filter(c => c.colaborador === colaborador && c.data.startsWith(mes)).sort((a,b) => a.data.localeCompare(b.data));
-      renderizarRelatorio(colaborador, mes);
+      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
+      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
+
+      if (!colaborador || !mesInicio) {
+        return alert("Selecione o colaborador e o período.");
+      }
+
+      relatorioFiltrado = comissoes
+        .filter(c => c.colaborador === colaborador && estaNoPeriodo(c.data, mesInicio, mesFim))
+        .sort((a,b) => a.data.localeCompare(b.data));
+
+      renderizarRelatorio(colaborador, mesInicio, mesFim);
     }
 
-    function renderizarRelatorio(colaborador, mes) {
-      const tbody = document.getElementById("listaRelatorio"); const cab = document.getElementById("cabecalhoRelatorio"); tbody.innerHTML = "";
+    function renderizarRelatorio(colaborador, mesInicio, mesFim) {
+      const tbody = document.getElementById("listaRelatorio");
+      const cab = document.getElementById("cabecalhoRelatorio");
+
+      tbody.innerHTML = "";
+
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
       const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      cab.style.display = "block"; cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomeMesAno(mes)}<br><strong>Quantidade Total:</strong> ${quantidadeTotal}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}`;
-      relatorioFiltrado.forEach(c => { const tr = document.createElement("tr"); tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td>`; tbody.appendChild(tr); });
+      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
+      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
+      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
+
+      cab.style.display = "block";
+      cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomePeriodoMes(mesInicio, mesFim)}<br><strong>Quantidade Total:</strong> ${quantidadeTotal}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}<br><strong>Meta do Período:</strong> ${formatarMoeda(metaPeriodo)}<br><strong>% Atingido:</strong> ${percentualMeta.toFixed(1).replace(".", ",")}%<br><strong>Status da Meta:</strong> ${statusMeta}`;
+
+      relatorioFiltrado.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td>`;
+        tbody.appendChild(tr);
+      });
     }
 
     function exportarExcel() {
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
-      const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
+
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
+      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
+      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
+
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
       const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      const dados = [["Relatório de Comissões"],["Colaborador", colaborador],["Período", nomeMesAno(mes)],["Quantidade Total", quantidadeTotal],["Valor Total das Comissões", valorTotal],[],["Data","Colaborador","Quantidade","Valor"]];
+      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
+      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
+      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
+
+      const dados = [
+        ["Relatório de Comissões"],
+        ["Colaborador", colaborador],
+        ["Período", nomePeriodoMes(mesInicio, mesFim)],
+        ["Quantidade Total", quantidadeTotal],
+        ["Valor Total das Comissões", valorTotal],
+        ["Meta do Período", metaPeriodo],
+        ["% Atingido", percentualMeta / 100],
+        ["Status da Meta", statusMeta],
+        [],
+        ["Data","Colaborador","Quantidade","Valor"]
+      ];
+
       relatorioFiltrado.forEach(c => dados.push([formatarData(c.data), c.colaborador, c.quantidade, Number(c.valor || 0)]));
-      const ws = XLSX.utils.aoa_to_sheet(dados), wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Relatório"); XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mes}.xlsx`);
+
+      const ws = XLSX.utils.aoa_to_sheet(dados);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+      XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.xlsx`);
     }
 
     function exportarPDF() {
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
-      const { jsPDF } = window.jspdf; const doc = new jsPDF();
-      const colaborador = document.getElementById("filtroRelatorioColaborador").value, mes = document.getElementById("filtroRelatorioMes").value;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
+      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
+      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
+
       const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
       const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      doc.setFontSize(16); doc.text("Relatório de Comissões", 14, 18); doc.setFontSize(11);
-      doc.text(`Colaborador: ${colaborador}`, 14, 30); doc.text(`Período: ${nomeMesAno(mes)}`, 14, 38); doc.text(`Quantidade Total: ${quantidadeTotal}`, 14, 46); doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
-      doc.autoTable({ startY:64, head:[["Data","Colaborador","Quantidade","Valor"]], body:relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]), styles:{ fontSize:9 }, headStyles:{ fillColor:[15,76,129] } });
-      doc.save(`relatorio_comissoes_${colaborador}_${mes}.pdf`);
+      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
+      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
+      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
+
+      doc.setFontSize(16);
+      doc.text("Relatório de Comissões", 14, 18);
+
+      doc.setFontSize(11);
+      doc.text(`Colaborador: ${colaborador}`, 14, 30);
+      doc.text(`Período: ${nomePeriodoMes(mesInicio, mesFim)}`, 14, 38);
+      doc.text(`Quantidade Total: ${quantidadeTotal}`, 14, 46);
+      doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
+      doc.text(`Meta do Período: ${formatarMoeda(metaPeriodo)}`, 14, 62);
+      doc.text(`% Atingido: ${percentualMeta.toFixed(1).replace(".", ",")}%`, 14, 70);
+      doc.text(`Status da Meta: ${statusMeta}`, 14, 78);
+
+      doc.autoTable({
+        startY: 88,
+        head: [["Data","Colaborador","Quantidade","Valor"]],
+        body: relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [15,76,129] }
+      });
+
+      doc.save(`relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.pdf`);
     }
 
     document.addEventListener("DOMContentLoaded", function() {
