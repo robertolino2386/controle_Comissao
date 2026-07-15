@@ -52,7 +52,7 @@
     table { width:100%; border-collapse:collapse; margin-top:24px; font-size:14px; overflow:hidden; border-radius:12px; }
     th { background:var(--azul); color:var(--branco); padding:12px; text-align:left; }
     td { padding:12px; border-bottom:1px solid #e2e8f0; } tr.inativo { opacity:.45; background:#f8fafc; }
-    .card-resumo { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:24px 0; }
+    .card-resumo { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin:24px 0; }
     .card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:18px; }
     .card span { display:block; color:var(--cinza-texto); font-size:13px; margin-bottom:8px; } .card strong { color:var(--azul); font-size:22px; }
     .card.meta-ok strong { color:var(--verde); } .card.meta-nao strong { color:var(--vermelho); }
@@ -124,6 +124,7 @@
     <button class="menu-btn" data-tela="dashboard" onclick="abrirTela('dashboard', this)">Dashboard</button>
     <button class="menu-btn" data-tela="colaboradores" onclick="abrirTela('colaboradores', this)">Colaboradores</button>
     <button class="menu-btn" data-tela="comissoes" onclick="abrirTela('comissoes', this)">Comissões</button>
+    <button class="menu-btn" data-tela="cancelados" onclick="abrirTela('cancelados', this)">Cancelados</button>
     <button class="menu-btn" data-tela="metas" onclick="abrirTela('metas', this)">Metas</button>
     <button class="menu-btn" data-tela="relatorios" onclick="abrirTela('relatorios', this)">Relatórios</button>
     <div class="user-box">
@@ -157,8 +158,10 @@
           </div>
         </div>
         <div class="card-resumo">
-          <div class="card"><span>Total de comissões</span><strong id="dashTotalValor">R$ 0,00</strong></div>
-          <div class="card"><span>Meta do mês</span><strong id="dashMetaMes">R$ 0,00</strong></div>
+          <div class="card"><span>Comissões emitidas</span><strong id="dashTotalEmitido">R$ 0,00</strong></div>
+          <div class="card"><span>Comissões canceladas</span><strong id="dashTotalCancelado">R$ 0,00</strong></div>
+          <div class="card"><span>Resultado líquido</span><strong id="dashTotalValor">R$ 0,00</strong></div>
+          <div class="card"><span>Meta do período</span><strong id="dashMetaMes">R$ 0,00</strong></div>
           <div class="card"><span>% atingido</span><strong id="dashPercentualMeta">0%</strong></div>
           <div class="card" id="cardStatusMeta"><span>Status da meta</span><strong id="dashStatusMeta">Sem meta</strong></div>
         </div>
@@ -217,6 +220,31 @@
           <button class="btn btn-paginacao" id="btnProximaPaginaComissao" onclick="mudarPaginaComissoes(1)">Próxima</button>
         </div>
       </section>
+
+      <section id="cancelados" class="tela">
+        <h1>Lançamento de Cancelados</h1><p class="subtitle">Registre e edite as comissões canceladas por colaborador</p>
+        <form id="formCancelado"><input type="hidden" id="idEdicaoCancelado"><div class="grid-2">
+          <div><label for="dataCancelado">Data</label><input type="date" id="dataCancelado" required></div>
+          <div><label for="colaboradorCancelado">Colaborador</label><select id="colaboradorCancelado" required><option value="">Selecione...</option></select></div>
+        </div><div class="grid-2">
+          <div><label for="quantidadeCancelado">Quantidade cancelada</label><input type="number" id="quantidadeCancelado" min="0" step="1" placeholder="Digite a quantidade" required></div>
+          <div><label for="valorCancelado">Valor cancelado</label><input type="number" id="valorCancelado" min="0" step="0.01" placeholder="Digite o valor" required></div>
+        </div><button type="submit" class="btn btn-principal" id="btnSalvarCancelado">Salvar Cancelado</button></form>
+        <div id="msgCancelado" class="mensagem"></div>
+        <div class="filtros-lista"><div class="grid-2">
+          <div><label for="filtroCanceladoColaborador">Filtrar por colaborador</label><select id="filtroCanceladoColaborador" onchange="paginaAtualCancelados = 1; listarCancelados();"><option value="">Todos</option></select></div>
+          <div><div class="grid-2">
+            <div><label for="filtroCanceladoMesInicio">Mês inicial</label><input type="month" id="filtroCanceladoMesInicio" onchange="paginaAtualCancelados = 1; listarCancelados();"></div>
+            <div><label for="filtroCanceladoMesFim">Mês final</label><input type="month" id="filtroCanceladoMesFim" onchange="paginaAtualCancelados = 1; listarCancelados();"></div>
+          </div></div>
+        </div></div>
+        <table><thead><tr><th>Data</th><th>Colaborador</th><th>Quantidade</th><th>Valor</th><th>Ações</th></tr></thead><tbody id="listaCancelados"></tbody></table>
+        <div class="paginacao">
+          <button class="btn btn-paginacao" id="btnPaginaAnteriorCancelado" onclick="mudarPaginaCancelados(-1)">Anterior</button>
+          <span id="infoPaginaCancelado">Página 1 de 1</span>
+          <button class="btn btn-paginacao" id="btnProximaPaginaCancelado" onclick="mudarPaginaCancelados(1)">Próxima</button>
+        </div>
+      </section>
       <section id="metas" class="tela">
         <h1>Metas</h1><p class="subtitle">Cadastre a meta mensal por colaborador</p>
         <form id="formMeta"><input type="hidden" id="idEdicaoMeta"><div class="grid-3">
@@ -242,7 +270,7 @@
         </div>
         <div id="cabecalhoRelatorio" class="relatorio-cabecalho"></div>
         <div class="acoes"><button class="btn btn-excel" onclick="exportarExcel()">Exportar Excel</button><button class="btn btn-pdf" onclick="exportarPDF()">Exportar PDF</button></div>
-        <table><thead><tr><th>Data</th><th>Colaborador</th><th>Quantidade</th><th>Valor</th></tr></thead><tbody id="listaRelatorio"></tbody></table>
+        <table><thead><tr><th>Data</th><th>Tipo</th><th>Colaborador</th><th>Quantidade</th><th>Valor</th></tr></thead><tbody id="listaRelatorio"></tbody></table>
       </section>
     </div>
     <footer>Desenvolvido por Roberto Lino</footer>
@@ -308,9 +336,11 @@
     }
 
     const API_URL = "https://script.google.com/macros/s/AKfycbz2eolWi9RBdfPYOQkaGUjAHk1Pdnd7OQFqUv8MNxBop8XszXNCMa8vhnZUqVeHWdr55A/exec";
-    let colaboradores = [], comissoes = [], metas = [], relatorioFiltrado = [];
+    let colaboradores = [], comissoes = [], cancelados = [], metas = [], relatorioFiltrado = [];
     let paginaAtualComissoes = 1;
+    let paginaAtualCancelados = 1;
     const itensPorPaginaComissoes = 10;
+    const itensPorPaginaCancelados = 10;
     let graficoDashboard = null, graficoMeta = null, graficoMensal = null;
 
     function mostrarCarregando(texto = "Salvando dados...") {
@@ -343,11 +373,13 @@
       try {
         const respColaboradores = await chamarAPI({ acao: "listarColaboradores" }, "Carregando colaboradores...");
         const respComissoes = await chamarAPI({ acao: "listarComissoes" }, "Carregando comissões...");
+        const respCancelados = await chamarAPI({ acao: "listarCancelados" }, "Carregando cancelados...");
         const respMetas = await chamarAPI({ acao: "listarMetas" }, "Carregando metas...");
         colaboradores = (respColaboradores.colaboradores || []).map(c => ({ id:c.id, nome:c.nome, email:c.email, ativo:c.status === "Ativo", status:c.status }));
         comissoes = (respComissoes.comissoes || []).map(c => ({ id:c.id, data:c.data, colaborador:c.colaborador, quantidade:Number(c.quantidade || 0), valor:Number(c.valor || 0) }));
+        cancelados = (respCancelados.cancelados || []).map(c => ({ id:c.id, data:c.data, colaborador:c.colaborador, quantidade:Number(c.quantidade || 0), valor:Number(c.valor || 0) }));
         metas = (respMetas.metas || []).map(m => ({ id:m.id, colaborador:m.colaborador, mes:m.mes, valor:Number(m.valor || 0) }));
-        listarColaboradores(); listarComissoes(); listarMetas(); atualizarFiltros(); atualizarDashboard();
+        listarColaboradores(); listarComissoes(); listarCancelados(); listarMetas(); atualizarFiltros(); atualizarDashboard();
       } catch (erro) {
         console.error(erro);
         alert("Não foi possível carregar os dados. Detalhe: " + (erro.message || erro));
@@ -368,6 +400,7 @@
       if (tela.id === "dashboard") atualizarDashboard();
       if (tela.id === "relatorios") atualizarFiltros();
       if (tela.id === "comissoes") listarComissoes();
+      if (tela.id === "cancelados") listarCancelados();
       if (tela.id === "metas") listarMetas();
     }
 
@@ -469,12 +502,12 @@
 
     function atualizarFiltros() {
       const ativos = obterColaboradoresAtivosOrdenados();
-      ["colaboradorComissao","filtroDashboardColaborador","filtroRelatorioColaborador","colaboradorMeta","filtroComissaoColaborador"].forEach(id => {
+      ["colaboradorComissao","colaboradorCancelado","filtroDashboardColaborador","filtroRelatorioColaborador","colaboradorMeta","filtroComissaoColaborador","filtroCanceladoColaborador"].forEach(id => {
         const select = document.getElementById(id); if (!select) return;
         const atual = select.value;
         select.innerHTML = id === "filtroDashboardColaborador"
           ? '<option value="">Todos os colaboradores ativos</option>'
-          : id === "filtroComissaoColaborador"
+          : (id === "filtroComissaoColaborador" || id === "filtroCanceladoColaborador")
             ? '<option value="">Todos</option>'
             : '<option value="">Selecione...</option>';
         ativos.forEach(c => { const op = document.createElement("option"); op.value = c.nome; op.textContent = c.nome; select.appendChild(op); });
@@ -602,6 +635,56 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    document.getElementById("formCancelado").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const id = document.getElementById("idEdicaoCancelado").value;
+      const data = document.getElementById("dataCancelado").value;
+      const colaborador = document.getElementById("colaboradorCancelado").value;
+      const quantidade = Number(document.getElementById("quantidadeCancelado").value);
+      const valor = Number(document.getElementById("valorCancelado").value);
+      const r = await chamarAPI({ acao:"salvarCancelado", id, data, colaborador, quantidade, valor, usuario: usuarioLogadoEmail() }, "Salvando cancelado...");
+      if (r.status !== "ok") return mostrarMensagem("msgCancelado", r.mensagem || "Erro ao salvar cancelado.", "erro");
+      this.reset(); document.getElementById("idEdicaoCancelado").value = ""; document.getElementById("btnSalvarCancelado").textContent = "Salvar Cancelado";
+      mostrarMensagem("msgCancelado", r.mensagem || "Cancelado salvo com sucesso.", "sucesso"); await carregarDadosIniciais();
+    });
+
+    function listarCancelados() {
+      const lista = document.getElementById("listaCancelados");
+      if (!lista) return;
+      lista.innerHTML = "";
+      const filtroColaborador = document.getElementById("filtroCanceladoColaborador")?.value || "";
+      const filtroMesInicio = document.getElementById("filtroCanceladoMesInicio")?.value || "";
+      const filtroMesFim = document.getElementById("filtroCanceladoMesFim")?.value || "";
+      let dados = [...cancelados];
+      if (filtroColaborador) dados = dados.filter(c => c.colaborador === filtroColaborador);
+      if (filtroMesInicio || filtroMesFim) dados = dados.filter(c => estaNoPeriodo(c.data, filtroMesInicio, filtroMesFim));
+      dados.sort((a,b) => b.data.localeCompare(a.data));
+      const totalPaginas = Math.max(1, Math.ceil(dados.length / itensPorPaginaCancelados));
+      paginaAtualCancelados = Math.min(Math.max(1, paginaAtualCancelados), totalPaginas);
+      const inicio = (paginaAtualCancelados - 1) * itensPorPaginaCancelados;
+      dados.slice(inicio, inicio + itensPorPaginaCancelados).forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td><td><button class="btn btn-editar" onclick="editarCancelado('${c.id}')">Editar</button></td>`;
+        lista.appendChild(tr);
+      });
+      document.getElementById("infoPaginaCancelado").textContent = `Página ${paginaAtualCancelados} de ${totalPaginas} | ${dados.length} registro(s)`;
+      document.getElementById("btnPaginaAnteriorCancelado").disabled = paginaAtualCancelados <= 1;
+      document.getElementById("btnProximaPaginaCancelado").disabled = paginaAtualCancelados >= totalPaginas;
+    }
+
+    function mudarPaginaCancelados(direcao) { paginaAtualCancelados += direcao; listarCancelados(); }
+
+    function editarCancelado(id) {
+      const c = cancelados.find(x => String(x.id) === String(id)); if (!c) return;
+      document.getElementById("idEdicaoCancelado").value = c.id;
+      document.getElementById("dataCancelado").value = c.data;
+      document.getElementById("colaboradorCancelado").value = c.colaborador;
+      document.getElementById("quantidadeCancelado").value = c.quantidade;
+      document.getElementById("valorCancelado").value = c.valor;
+      document.getElementById("btnSalvarCancelado").textContent = "Atualizar Cancelado";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     document.getElementById("formMeta").addEventListener("submit", async function(e) {
       e.preventDefault();
       const id = document.getElementById("idEdicaoMeta").value;
@@ -631,123 +714,49 @@
 
     function atualizarDashboard() {
       atualizarFiltros();
-
       const colaboradorSelecionado = document.getElementById("filtroDashboardColaborador").value;
       const mesInicio = document.getElementById("filtroDashboardMesInicio")?.value || mesAtual();
       const mesFim = document.getElementById("filtroDashboardMesFim")?.value || mesInicio;
-
-      let dados = comissoes.filter(c => estaNoPeriodo(c.data, mesInicio, mesFim));
-
-      if (colaboradorSelecionado) {
-        dados = dados.filter(c => c.colaborador === colaboradorSelecionado);
-      } else {
-        const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
-        dados = dados.filter(c => ativos.includes(c.colaborador));
-      }
-
-      const totalValor = dados.reduce((acc,c) => acc + Number(c.valor || 0), 0);
+      const ativos = obterColaboradoresAtivosOrdenados().map(c => c.nome);
+      const filtroPessoa = item => colaboradorSelecionado ? item.colaborador === colaboradorSelecionado : ativos.includes(item.colaborador);
+      const emitidas = comissoes.filter(c => estaNoPeriodo(c.data, mesInicio, mesFim) && filtroPessoa(c));
+      const canceladasPeriodo = cancelados.filter(c => estaNoPeriodo(c.data, mesInicio, mesFim) && filtroPessoa(c));
+      const totalEmitido = emitidas.reduce((a,c) => a + Number(c.valor || 0), 0);
+      const totalCancelado = canceladasPeriodo.reduce((a,c) => a + Number(c.valor || 0), 0);
+      const totalValor = totalEmitido - totalCancelado;
       const metaMes = somarMetasPeriodo(colaboradorSelecionado, mesInicio, mesFim);
-
       const percentual = metaMes > 0 ? (totalValor / metaMes) * 100 : 0;
       const statusMeta = metaMes === 0 ? "Sem meta" : percentual >= 100 ? "Meta batida" : "Abaixo da meta";
-
+      document.getElementById("dashTotalEmitido").textContent = formatarMoeda(totalEmitido);
+      document.getElementById("dashTotalCancelado").textContent = formatarMoeda(totalCancelado);
       document.getElementById("dashTotalValor").textContent = formatarMoeda(totalValor);
       document.getElementById("dashMetaMes").textContent = formatarMoeda(metaMes);
       document.getElementById("dashPercentualMeta").textContent = `${percentual.toFixed(1).replace(".", ",")}%`;
       document.getElementById("dashStatusMeta").textContent = statusMeta;
-
       const card = document.getElementById("cardStatusMeta");
       card.classList.remove("meta-ok","meta-nao");
       if (metaMes > 0 && percentual >= 100) card.classList.add("meta-ok");
       if (metaMes > 0 && percentual < 100) card.classList.add("meta-nao");
 
-      const agrupado = {};
-      dados.forEach(c => {
-        if (!agrupado[c.data]) agrupado[c.data] = 0;
-        agrupado[c.data] += Number(c.valor || 0);
-      });
-
-      const datas = Object.keys(agrupado).sort();
-      const labels = datas.map(formatarData);
-      const valores = datas.map(d => agrupado[d]);
-
-      if (graficoMensal) graficoMensal.destroy();
-      if (graficoMeta) graficoMeta.destroy();
-      if (graficoDashboard) graficoDashboard.destroy();
-
       const mesesPeriodo = gerarMesesPeriodo(mesInicio, mesFim);
       const dadosMensais = mesesPeriodo.map(mes => {
-        const realizado = dados
-          .filter(c => c.data && c.data.startsWith(mes))
-          .reduce((acc, c) => acc + Number(c.valor || 0), 0);
-
-        const meta = somarMetasPeriodo(colaboradorSelecionado, mes, mes);
-
-        return {
-          mes,
-          label: nomeMesAno(mes),
-          realizado,
-          meta
-        };
+        const emitido = emitidas.filter(c => c.data?.startsWith(mes)).reduce((a,c)=>a+Number(c.valor||0),0);
+        const cancelado = canceladasPeriodo.filter(c => c.data?.startsWith(mes)).reduce((a,c)=>a+Number(c.valor||0),0);
+        return { mes, label:nomeMesAno(mes), emitido, cancelado, realizado:emitido-cancelado, meta:somarMetasPeriodo(colaboradorSelecionado, mes, mes) };
       });
-
-      graficoMensal = new Chart(document.getElementById("graficoMensal").getContext("2d"), {
-        type: "bar",
-        data: {
-          labels: dadosMensais.map(item => item.label),
-          datasets: [
-            {
-              label: "Realizado",
-              data: dadosMensais.map(item => item.realizado),
-              backgroundColor: "#22c55e",
-              borderRadius: 8
-            },
-            {
-              label: "Meta",
-              data: dadosMensais.map(item => item.meta),
-              backgroundColor: "#00285C",
-              borderRadius: 8
-            }
-          ]
-        },
-        options: opcoesGraficoPadrao()
-      });
-
-      graficoMeta = new Chart(document.getElementById("graficoMeta").getContext("2d"), {
-        type: "bar",
-        data: {
-          labels: ["Realizado", "Meta"],
-          datasets: [{
-            label: "Comparativo do período",
-            data: [totalValor, metaMes],
-            backgroundColor: ["#22c55e", "#00285C"],
-            borderRadius: 8
-          }]
-        },
-        options: {
-          ...opcoesGraficoPadrao(),
-          plugins: {
-            ...opcoesGraficoPadrao().plugins,
-            legend: { display: false }
-          }
-        }
-      });
-
-      graficoDashboard = new Chart(document.getElementById("graficoDashboard").getContext("2d"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Evolução diária das comissões",
-            data: valores,
-            backgroundColor: "#22c55e",
-            borderColor: "#16a34a",
-            borderWidth: 1,
-            borderRadius: 8
-          }]
-        },
-        options: opcoesGraficoPadrao()
-      });
+      const dias = {};
+      emitidas.forEach(c => { dias[c.data] = (dias[c.data] || 0) + Number(c.valor || 0); });
+      canceladasPeriodo.forEach(c => { dias[c.data] = (dias[c.data] || 0) - Number(c.valor || 0); });
+      const datas = Object.keys(dias).sort();
+      if (graficoMensal) graficoMensal.destroy(); if (graficoMeta) graficoMeta.destroy(); if (graficoDashboard) graficoDashboard.destroy();
+      graficoMensal = new Chart(document.getElementById("graficoMensal").getContext("2d"), { type:"bar", data:{ labels:dadosMensais.map(x=>x.label), datasets:[
+        {label:"Emitidas",data:dadosMensais.map(x=>x.emitido),backgroundColor:"#22c55e",borderRadius:8},
+        {label:"Canceladas",data:dadosMensais.map(x=>x.cancelado),backgroundColor:"#ef4444",borderRadius:8},
+        {label:"Resultado líquido",data:dadosMensais.map(x=>x.realizado),backgroundColor:"#0ea5e9",borderRadius:8},
+        {label:"Meta",data:dadosMensais.map(x=>x.meta),backgroundColor:"#00285C",borderRadius:8}
+      ]}, options:opcoesGraficoPadrao() });
+      graficoMeta = new Chart(document.getElementById("graficoMeta").getContext("2d"), { type:"bar", data:{labels:["Emitidas","Canceladas","Líquido","Meta"],datasets:[{label:"Comparativo do período",data:[totalEmitido,totalCancelado,totalValor,metaMes],backgroundColor:["#22c55e","#ef4444","#0ea5e9","#00285C"],borderRadius:8}]}, options:{...opcoesGraficoPadrao(),plugins:{...opcoesGraficoPadrao().plugins,legend:{display:false}}} });
+      graficoDashboard = new Chart(document.getElementById("graficoDashboard").getContext("2d"), { type:"bar", data:{labels:datas.map(formatarData),datasets:[{label:"Resultado líquido diário",data:datas.map(d=>dias[d]),backgroundColor:"#0ea5e9",borderColor:"#0284c7",borderWidth:1,borderRadius:8}]}, options:opcoesGraficoPadrao() });
     }
 
     function adicionarGraficoPDF(doc, canvasId, titulo, yInicial) {
@@ -777,12 +786,14 @@
       doc.setFontSize(10);
       doc.text(`Colaborador: ${colaborador}`, 14, 28);
       doc.text(`Período: ${nomePeriodoMes(mesInicio, mesFim)}`, 14, 35);
-      doc.text(`Total realizado: ${document.getElementById("dashTotalValor").textContent}`, 14, 42);
-      doc.text(`Meta: ${document.getElementById("dashMetaMes").textContent}`, 14, 49);
-      doc.text(`% atingido: ${document.getElementById("dashPercentualMeta").textContent}`, 14, 56);
-      doc.text(`Status: ${document.getElementById("dashStatusMeta").textContent}`, 14, 63);
+      doc.text(`Total emitido: ${document.getElementById("dashTotalEmitido").textContent}`, 14, 42);
+      doc.text(`Total cancelado: ${document.getElementById("dashTotalCancelado").textContent}`, 14, 49);
+      doc.text(`Resultado líquido: ${document.getElementById("dashTotalValor").textContent}`, 14, 56);
+      doc.text(`Meta: ${document.getElementById("dashMetaMes").textContent}`, 14, 63);
+      doc.text(`% atingido: ${document.getElementById("dashPercentualMeta").textContent}`, 14, 70);
+      doc.text(`Status: ${document.getElementById("dashStatusMeta").textContent}`, 14, 77);
 
-      let y = 74;
+      let y = 88;
 
       y = adicionarGraficoPDF(doc, "graficoMensal", "Realizado x Meta por mês", y);
 
@@ -807,110 +818,46 @@
       const colaborador = document.getElementById("filtroRelatorioColaborador").value;
       const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
       const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
-
-      if (!colaborador || !mesInicio) {
-        return alert("Selecione o colaborador e o período.");
-      }
-
-      relatorioFiltrado = comissoes
-        .filter(c => c.colaborador === colaborador && estaNoPeriodo(c.data, mesInicio, mesFim))
-        .sort((a,b) => a.data.localeCompare(b.data));
-
+      if (!colaborador || !mesInicio) return alert("Selecione o colaborador e o período.");
+      const emitidas = comissoes.filter(c => c.colaborador === colaborador && estaNoPeriodo(c.data, mesInicio, mesFim)).map(c=>({...c,tipo:"Emitida",sinal:1}));
+      const cans = cancelados.filter(c => c.colaborador === colaborador && estaNoPeriodo(c.data, mesInicio, mesFim)).map(c=>({...c,tipo:"Cancelada",sinal:-1}));
+      relatorioFiltrado = [...emitidas,...cans].sort((a,b)=>a.data.localeCompare(b.data) || a.tipo.localeCompare(b.tipo));
       renderizarRelatorio(colaborador, mesInicio, mesFim);
     }
 
+    function totaisRelatorio() {
+      const emitidas = relatorioFiltrado.filter(c=>c.tipo==="Emitida");
+      const canceladasR = relatorioFiltrado.filter(c=>c.tipo==="Cancelada");
+      const qtdEmitida=emitidas.reduce((a,c)=>a+Number(c.quantidade||0),0), qtdCancelada=canceladasR.reduce((a,c)=>a+Number(c.quantidade||0),0);
+      const valorEmitido=emitidas.reduce((a,c)=>a+Number(c.valor||0),0), valorCancelado=canceladasR.reduce((a,c)=>a+Number(c.valor||0),0);
+      return {qtdEmitida,qtdCancelada,qtdLiquida:qtdEmitida-qtdCancelada,valorEmitido,valorCancelado,valorLiquido:valorEmitido-valorCancelado};
+    }
+
     function renderizarRelatorio(colaborador, mesInicio, mesFim) {
-      const tbody = document.getElementById("listaRelatorio");
-      const cab = document.getElementById("cabecalhoRelatorio");
-
-      tbody.innerHTML = "";
-
-      const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
-      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
-      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
-
-      cab.style.display = "block";
-      cab.innerHTML = `<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomePeriodoMes(mesInicio, mesFim)}<br><strong>Quantidade Total:</strong> ${quantidadeTotal}<br><strong>Valor Total das Comissões:</strong> ${formatarMoeda(valorTotal)}<br><strong>Meta do Período:</strong> ${formatarMoeda(metaPeriodo)}<br><strong>% Atingido:</strong> ${percentualMeta.toFixed(1).replace(".", ",")}%<br><strong>Status da Meta:</strong> ${statusMeta}`;
-
-      relatorioFiltrado.forEach(c => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${formatarData(c.data)}</td><td>${c.colaborador}</td><td>${c.quantidade}</td><td>${formatarMoeda(c.valor)}</td>`;
-        tbody.appendChild(tr);
-      });
+      const tbody=document.getElementById("listaRelatorio"), cab=document.getElementById("cabecalhoRelatorio"); tbody.innerHTML="";
+      const t=totaisRelatorio(), metaPeriodo=somarMetasPeriodo(colaborador,mesInicio,mesFim), percentualMeta=metaPeriodo>0?(t.valorLiquido/metaPeriodo)*100:0;
+      const statusMeta=metaPeriodo===0?"Sem meta cadastrada":percentualMeta>=100?"Meta batida":"Abaixo da meta";
+      cab.style.display="block";
+      cab.innerHTML=`<strong>Relatório de Comissões</strong><br><strong>Colaborador:</strong> ${colaborador}<br><strong>Período:</strong> ${nomePeriodoMes(mesInicio,mesFim)}<br><strong>Emitidas:</strong> ${t.qtdEmitida} | ${formatarMoeda(t.valorEmitido)}<br><strong>Canceladas:</strong> ${t.qtdCancelada} | ${formatarMoeda(t.valorCancelado)}<br><strong>Resultado líquido:</strong> ${t.qtdLiquida} | ${formatarMoeda(t.valorLiquido)}<br><strong>Meta do período:</strong> ${formatarMoeda(metaPeriodo)}<br><strong>% Atingido:</strong> ${percentualMeta.toFixed(1).replace(".",",")}%<br><strong>Status:</strong> ${statusMeta}`;
+      relatorioFiltrado.forEach(c=>{const tr=document.createElement("tr");tr.innerHTML=`<td>${formatarData(c.data)}</td><td>${c.tipo}</td><td>${c.colaborador}</td><td>${c.tipo==="Cancelada"?"-":""}${c.quantidade}</td><td>${c.tipo==="Cancelada"?"-":""}${formatarMoeda(c.valor)}</td>`;tbody.appendChild(tr);});
     }
 
     function exportarExcel() {
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
-
-      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
-      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
-      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
-
-      const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
-      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
-      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
-
-      const dados = [
-        ["Relatório de Comissões"],
-        ["Colaborador", colaborador],
-        ["Período", nomePeriodoMes(mesInicio, mesFim)],
-        ["Quantidade Total", quantidadeTotal],
-        ["Valor Total das Comissões", valorTotal],
-        ["Meta do Período", metaPeriodo],
-        ["% Atingido", percentualMeta / 100],
-        ["Status da Meta", statusMeta],
-        [],
-        ["Data","Colaborador","Quantidade","Valor"]
-      ];
-
-      relatorioFiltrado.forEach(c => dados.push([formatarData(c.data), c.colaborador, c.quantidade, Number(c.valor || 0)]));
-
-      const ws = XLSX.utils.aoa_to_sheet(dados);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Relatório");
-      XLSX.writeFile(wb, `relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.xlsx`);
+      const colaborador=document.getElementById("filtroRelatorioColaborador").value, mesInicio=document.getElementById("filtroRelatorioMesInicio").value, mesFim=document.getElementById("filtroRelatorioMesFim").value||mesInicio;
+      const t=totaisRelatorio(), meta=somarMetasPeriodo(colaborador,mesInicio,mesFim), pct=meta>0?t.valorLiquido/meta:0;
+      const dados=[["Relatório de Comissões"],["Colaborador",colaborador],["Período",nomePeriodoMes(mesInicio,mesFim)],["Quantidade emitida",t.qtdEmitida],["Quantidade cancelada",t.qtdCancelada],["Quantidade líquida",t.qtdLiquida],["Valor emitido",t.valorEmitido],["Valor cancelado",t.valorCancelado],["Valor líquido",t.valorLiquido],["Meta",meta],["% Atingido",pct],[],["Data","Tipo","Colaborador","Quantidade","Valor"]];
+      relatorioFiltrado.forEach(c=>dados.push([formatarData(c.data),c.tipo,c.colaborador,Number(c.quantidade||0)*c.sinal,Number(c.valor||0)*c.sinal]));
+      const ws=XLSX.utils.aoa_to_sheet(dados),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Relatório");XLSX.writeFile(wb,`relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.xlsx`);
     }
 
     function exportarPDF() {
       if (!relatorioFiltrado.length) return alert("Filtre um relatório antes de exportar.");
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      const colaborador = document.getElementById("filtroRelatorioColaborador").value;
-      const mesInicio = document.getElementById("filtroRelatorioMesInicio").value;
-      const mesFim = document.getElementById("filtroRelatorioMesFim").value || mesInicio;
-
-      const valorTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.valor || 0), 0);
-      const quantidadeTotal = relatorioFiltrado.reduce((acc,c) => acc + Number(c.quantidade || 0), 0);
-      const metaPeriodo = somarMetasPeriodo(colaborador, mesInicio, mesFim);
-      const percentualMeta = metaPeriodo > 0 ? (valorTotal / metaPeriodo) * 100 : 0;
-      const statusMeta = metaPeriodo === 0 ? "Sem meta cadastrada" : percentualMeta >= 100 ? "Meta batida" : "Abaixo da meta";
-
-      doc.setFontSize(16);
-      doc.text("Relatório de Comissões", 14, 18);
-
-      doc.setFontSize(11);
-      doc.text(`Colaborador: ${colaborador}`, 14, 30);
-      doc.text(`Período: ${nomePeriodoMes(mesInicio, mesFim)}`, 14, 38);
-      doc.text(`Quantidade Total: ${quantidadeTotal}`, 14, 46);
-      doc.text(`Valor Total das Comissões: ${formatarMoeda(valorTotal)}`, 14, 54);
-      doc.text(`Meta do Período: ${formatarMoeda(metaPeriodo)}`, 14, 62);
-      doc.text(`% Atingido: ${percentualMeta.toFixed(1).replace(".", ",")}%`, 14, 70);
-      doc.text(`Status da Meta: ${statusMeta}`, 14, 78);
-
-      doc.autoTable({
-        startY: 88,
-        head: [["Data","Colaborador","Quantidade","Valor"]],
-        body: relatorioFiltrado.map(c => [formatarData(c.data), c.colaborador, c.quantidade, formatarMoeda(c.valor)]),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [15,76,129] }
-      });
-
+      const {jsPDF}=window.jspdf,doc=new jsPDF(),colaborador=document.getElementById("filtroRelatorioColaborador").value,mesInicio=document.getElementById("filtroRelatorioMesInicio").value,mesFim=document.getElementById("filtroRelatorioMesFim").value||mesInicio;
+      const t=totaisRelatorio(),meta=somarMetasPeriodo(colaborador,mesInicio,mesFim),pct=meta>0?(t.valorLiquido/meta)*100:0;
+      doc.setFontSize(16);doc.text("Relatório de Comissões",14,18);doc.setFontSize(10);
+      doc.text(`Colaborador: ${colaborador}`,14,28);doc.text(`Período: ${nomePeriodoMes(mesInicio,mesFim)}`,14,35);doc.text(`Emitidas: ${t.qtdEmitida} | ${formatarMoeda(t.valorEmitido)}`,14,42);doc.text(`Canceladas: ${t.qtdCancelada} | ${formatarMoeda(t.valorCancelado)}`,14,49);doc.text(`Resultado líquido: ${t.qtdLiquida} | ${formatarMoeda(t.valorLiquido)}`,14,56);doc.text(`Meta: ${formatarMoeda(meta)}`,14,63);doc.text(`% Atingido: ${pct.toFixed(1).replace(".",",")}%`,14,70);
+      doc.autoTable({startY:80,head:[["Data","Tipo","Colaborador","Quantidade","Valor"]],body:relatorioFiltrado.map(c=>[formatarData(c.data),c.tipo,c.colaborador,Number(c.quantidade||0)*c.sinal,formatarMoeda(Number(c.valor||0)*c.sinal)]),styles:{fontSize:8},headStyles:{fillColor:[15,76,129]}});
       doc.save(`relatorio_comissoes_${colaborador}_${mesInicio}_${mesFim}.pdf`);
     }
 
